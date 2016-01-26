@@ -7,9 +7,9 @@ Infraestrutura mínima para controle e marcação terminologicos em documentos X
 
 A ortografia de um  texto de um desses documentos, escrito em [português brasileiro](https://www.wikidata.org/wiki/Q750553),  requer os seguintes controles:
 
-* *vocabulário ordinário*: [VOLP](http://www.academia.org.br/nossa-lingua/busca-no-vocabulario), palavras simples e algumas palavras compostas, contexto fixado por análise linguística (substantivo, verbo, preposição, etc.). 
+* *vocabulário ordinário*: [VOLP](http://www.academia.org.br/nossa-lingua/busca-no-vocabulario), palavras simples e algumas palavras compostas, contexto fixado por análise linguística (substantivo, verbo, preposição, etc.). Não é escopo do presente projeto, ver também (além do VOLP que [é um problema por não é aberto](http://pt.stackoverflow.com/q/10287/4186)) [Unitex](http://www-igm.univ-mlv.fr/~unitex/) e [VERO](https://pt-br.libreoffice.org/projetos/vero/).
 
-* *vocabulário técnico*: ver dicionário de jargão complementando o VOLP. Contexto fixado por área científica e compromisso rigor/informalidade do documento. Uso de expressões não-textuais tais como equações e variáveis, bem como o uso de códigos e abreviações, também recaem nesse "vocabulário".
+* *vocabulário técnico*: ver dicionário de jargão complementando o VOLP. Contexto fixado por área científica e compromisso rigor/informalidade do documento. Uso de expressões não-textuais tais como equações e variáveis, bem como o uso de códigos e abreviações, também recaem nesse "vocabulário". Não é escopo do presente projeto, vem acoplado ao *framework* de controle do *vocabulário ordinário*. 
 
 * [*entidades nomeadas*](https://en.wikipedia.org/wiki/Named-entity_recognition): contemplados pelo escopo do presente projeto.
 
@@ -19,10 +19,4 @@ A ortografia de um  texto de um desses documentos, escrito em [português brasil
 
 ## Objetivo ##
 Infra-estrutura SQL PostgreSQL v9+ para a manter contextos, termos controlados e seus sinônimos localiados no corpus. As funcionalidades da base permitem tanto o marcação em contexto como a recuperação dos termos de um contexto.
-
-
-
-
-
-
 
