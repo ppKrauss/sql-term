@@ -1,9 +1,9 @@
 # base-terminologia-controlada
 Infraestrutura mínima para controle e marcação terminologicos em documentos XML formais.
 
-[Terminologias controladas](https://en.wikipedia.org/wiki/Controlled_vocabulary) têm usualmente a sua origem em normas, tesauros, glossários, vocabulários ou ontologias. No presente projeto os termos podem ter também a sua origem e controle em um [corpus linguístico textual](https://en.wikipedia.org/wiki/Corpus_linguistics), satisfazendo "controle por demanda".
+[Terminologias controladas](https://www.wikidata.org/wiki/Q1469824) têm usualmente a sua origem em normas, tesauros, glossários, vocabulários ou ontologias. No presente projeto os termos podem ter também a sua origem e controle em um [corpus linguístico textual](https://www.wikidata.org/wiki/Q865083), satisfazendo "controle por demanda".
 
-É suposto o uso de documentos XML marcados em padrões [JATS](https://en.wikipedia.org/wiki/Journal_Article_Tag_Suite), [AKN](http://www.akomantoso.org/) ou [LexML](http://projeto.lexml.gov.br/documentacao/Parte-3-XML-Schema.pdf), e identificados pelos padrões [DOI](https://en.wikipedia.org/wiki/Digital_object_identifier) ou [URN Lex](https://en.wikipedia.org/wiki/Lex_(URN)).
+É suposto o uso de documentos XML marcados em padrões [JATS](https://en.wikipedia.org/wiki/Journal_Article_Tag_Suite), [AKN](http://www.akomantoso.org/) ou [LexML](http://projeto.lexml.gov.br/documentacao/Parte-3-XML-Schema.pdf), e identificados pelos padrões [DOI](https://www.wikidata.org/wiki/Q25670) ou [URN Lex](https://en.wikipedia.org/wiki/Lex_(URN)).
 
 A ortografia de um  texto de um desses documentos, escrito em [português brasileiro](https://www.wikidata.org/wiki/Q750553),  requer os seguintes controles:
 
