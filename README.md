@@ -1,5 +1,10 @@
-# base-terminologia-controlada
+# Term
 Infraestrutura mínima para controle e marcação terminologicos em documentos XML formais.
+
+http://www.postgresql.org/docs/9.1/static/textsearch-dictionaries.html
+-- OTIMIZAÇÕES DO POSTGRESQL antes do Lucene ou Elasticsearsh 
+-- http://www.postgresql.org/docs/current/static/textsearch-tables.html
+-- 
 
 [Terminologias controladas](https://www.wikidata.org/wiki/Q1469824) têm usualmente a sua origem em normas, tesauros, glossários, vocabulários ou ontologias. No presente projeto os termos podem ter também a sua origem e controle em um [corpus linguístico textual](https://www.wikidata.org/wiki/Q865083), satisfazendo "controle por demanda".
 
@@ -19,4 +24,14 @@ A ortografia de um  texto de um desses documentos, escrito em [português brasil
 
 ## Objetivo ##
 Infra-estrutura SQL PostgreSQL v9+ para a manter contextos, termos controlados e seus sinônimos localiados no corpus. As funcionalidades da base permitem tanto o marcação em contexto como a recuperação dos termos de um contexto.
+
+## Modelagem ##
+
+Diagrama UML classes de [ini.sql](src/ini.sql)
+
+```
+...
+
+```
+
 

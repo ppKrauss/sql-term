@@ -1,0 +1,35 @@
+{
+  "title": "Terminologia Controlada",
+  "name": "base-terminologia-controlada",
+  "description": "Term or name dataset and tools.",
+  "sources": [
+     {
+      "name":"Open Definition Licenses Service",
+      "web": "http://licenses.opendefinition.org"
+     }
+   ],
+  "licenses": [
+    {
+      "url": "http://www.opendefinition.org/licenses/odc-pddl",
+      "title": "Open Data Commons Public Domain Dedication and Licence 1.0",
+      "id": "ODC-PDDL-1.0"
+    }
+  ],
+  "resources": [
+    {
+      "name": "cargaTest1",
+      "path": "data/cargaTest1.csv",
+      "mediatype": "text/csv",
+      "schema": {
+        "fields": [
+          {
+            "name": "term",
+            "role": "pk",
+            "type": "string",
+            "description": "Label of the scope of families"
+          }
+         ]
+      }
+    }
+  ]
+}
