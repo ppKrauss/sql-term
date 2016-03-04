@@ -10,6 +10,12 @@ XML: terms into [JATS](https://en.wikipedia.org/wiki/Journal_Article_Tag_Suite),
 ## Objetive ##
 ...
 
+## PREPARE ##
+```
+cd sql-term
+php src/prepare.php
+```
+
 ## Modelagem ##
 
 UML class diagram of [ini.sql](src/ini.sql):
