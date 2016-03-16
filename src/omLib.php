@@ -26,7 +26,8 @@
 /////////////////
 // ERROR HANDLING
 
-function sql_exec(PDO $db,$sql) {
+function sql_exec(PDO $db,$sql,$msg="") {
+    if ($msg) print $msg;
     $affected = $db->exec($sql);
     if ($affected === false) {
         $err = $db->errorInfo();
@@ -48,6 +49,7 @@ $glo_scope = ['od','oa','rt'];
  * Initialization, get datapackage.json and project descriptions to transform in a SQL+JSON database.
  */
 function jsonCsv_to_sql(&$items, &$projects, &$db, $SEP = ',', $nmax = 0, $verbose=2) {
+	//$nmax=500;
 	$OUT_report = '';
 	$n=$N=$N2=0;
 	foreach($items as $prj=>$r)
@@ -62,13 +64,18 @@ function jsonCsv_to_sql(&$items, &$projects, &$db, $SEP = ',', $nmax = 0, $verbo
 		$ds = array(); // only for "bind" and "strict" checkings.
 		foreach($dataset as $i) {
 			$i = str_replace('::bind','',$i,$bind);
-			$i = str_replace('::strict','',$i,$aux);
-			$ds["data/$i"] = $bind+2*$aux;
+			$i = str_replace('::strict','',$i,$aux2);  // useType
+			$i = str_replace('::direct','',$i,$aux4);  // useDirect
+			$ds["data/$i"] = $bind + 2*$aux2 + 4*$aux4;  // filepath "data/filename.csv"
 		}
 		$ds_keys = array_keys($ds);
 		foreach($jpack['resources'] as $pack)
 		  if ( in_array($pack['path'],$ds_keys) ) {
-			$useType = ($ds[$pack['path']]>1);
+			$SEP2 = isset($pack['sep'])? $pack['sep']: $SEP;
+			//$useBind = ($ds[$pack['path']] & 1);  // new 2016
+			//$useType = ($ds[$pack['path']] & 2);
+			$useType = ($ds[$pack['path']] >1);
+			//$useDirect = ($ds[$pack['path']] & 4);  // new 2016
 			$OUT_report.= "\n\t-- reding dataset '$pack[path]' ";
 			$fields = $pack['schema']['fields'];
 			list($sql_fields,$json_fields,$json_types) = fields_to_parts($fields,false,true); //,$useType);
@@ -79,7 +86,8 @@ function jsonCsv_to_sql(&$items, &$projects, &$db, $SEP = ',', $nmax = 0, $verbo
 			$file = "$folder/$pack[path]";
 			$h = fopen($file,'r');
 			while( $h && !feof($h) && (!$nmax || $n<$nmax) )
-			  if (($lin0=$lin = fgetcsv($h,0,$SEP)) && $n++>0  && isset($lin[0])) {
+			  if (($lin0=$lin = fgetcsv($h,0,$SEP2)) && $n++>0  && isset($lin[0])) {
+// erro, corrigir para usar json e não slice, visto que PK não precisaria ser sempre o primeiro field
 				$jsons = array_slice($lin,$nsql);
 				$types = array_slice($json_types,$nsql);
 				for($t_i=0; $t_i<count($types); $t_i++)

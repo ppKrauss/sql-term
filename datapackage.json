@@ -1,32 +1,70 @@
 {
-  "title": "Terminologia Controlada",
-  "name": "base-terminologia-controlada",
+  "title": "Terminologia Controlada em base SQL",
+  "name": "SQL-Term",
   "description": "Term or name dataset and tools.",
   "sources": [
      {
-      "name":"Open Definition Licenses Service",
-      "web": "http://licenses.opendefinition.org"
+      "name":"Wayta, online API for support of the SciELO Publishing Schema",
+      "web": "https://github.com/scieloorg/wayta"
      }
    ],
   "licenses": [
     {
-      "url": "http://www.opendefinition.org/licenses/odc-pddl",
-      "title": "Open Data Commons Public Domain Dedication and Licence 1.0",
-      "id": "ODC-PDDL-1.0"
+      "url": "http://www.opensource.org/licenses/BSD-2-Clause",
+      "title": "FreeBSD License Simplified",
+      "id": "BSD-2-Clause"
     }
   ],
   "resources": [
     {
-      "name": "cargaTest1",
-      "path": "data/cargaTest1.csv",
+      "name": "test",
+      "path": "data/test.csv",
       "mediatype": "text/csv",
+      "content":"305 itens, mix of portuguese and english",
+      "schema": {
+        "fields": [
+          {
+            "name": "term",
+            "role": "pk",
+            "type": "string"
+          }
+         ]
+      }
+    },
+    {
+      "name": "normalized_aff of Wayta",
+      "path": "data/normalized_aff.csv",
+      "sep": ";",
+      "mediatype": "text/csv",
+      "content":"43050 itens, 41795 normalized, 31589 canonic, mix of portuguese and english",
       "schema": {
         "fields": [
           {
             "name": "term",
             "role": "pk",
             "type": "string",
-            "description": "Label of the scope of families"
+            "description": "Canonic or synonym, mix of terms"
+          },
+          {
+            "name": "form",
+            "type": "string",
+            "description": "(supposed) Canonic form of the term"
+          },
+          {
+            "name": "country",
+            "type": "string"
+          },
+          {
+            "name": "iso2",
+            "type": "string"
+          },
+          {
+            "name": "state",
+            "type": "string"
+          },
+          {
+            "name": "city",
+            "type": "string"
           }
          ]
       }

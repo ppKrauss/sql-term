@@ -1,0 +1,170 @@
+=================================================================
+=== Running: basic1 examples ====================================
+=================================================================
+
+=== Namespaces: ================
+ nscount | nsid |   label    | lang | is_base | fk_partof | kx_regconf 
+---------+------+------------+------+---------+-----------+------------
+       1 |    1 | test       | pt   | t       |           | portuguese
+       2 |    2 | wayta-pt   | pt   | t       |           | portuguese
+       3 |    4 | wayta-code |      | f       |         2 | simple
+       4 |    8 | wayta-en   | en   | f       |         2 | english
+       5 |   16 | wayta-es   | es   | f       |         2 | spanish
+(5 registros)
+
+=== Testing mask performance and counting namespace of group: ===
+   label    | is_base |   n   
+------------+---------+-------
+ wayta-pt   | t       | 31512
+ wayta-code | f       |   517
+ wayta-en   | f       |  6038
+ wayta-es   | f       |  3088
+(4 registros)
+
+=== Only base-namespaces: =======================================
+  label   | is_base |   n   
+----------+---------+-------
+ test     | t       |   302
+ wayta-pt | t       | 31512
+(2 registros)
+
+=== Compare score functions: ====================================
+    x     |     cmp      | score |      f      | len 
+----------+--------------+-------+-------------+-----
+ foo bras | foo bras     |   500 | lev500      |   8
+ foo bras | foo bris     |   499 | lev500      |   8
+ foo bras | foo bri2     |   498 | lev500      |   8
+ foo bras | bar bras     |   497 | lev500      |   8
+ foo bras | foo          |   495 | lev500      |   8
+ foo bras | bar bras 123 |   493 | lev500      |  12
+ foo bras | foo bras     |   100 | levdiffperc |   8
+ foo bras | foo bris     |    88 | levdiffperc |   8
+ foo bras | foo bri2     |    75 | levdiffperc |   8
+ foo bras | bar bras     |    62 | levdiffperc |   8
+ foo bras | bar bras 123 |    42 | levdiffperc |  12
+ foo bras | foo          |    38 | levdiffperc |   8
+ foo bras | foo bras     |   100 | std         |   8
+ foo bras | foo bris     |    78 | std         |   8
+ foo bras | foo bri2     |    60 | std         |   8
+ foo bras | bar bras     |    45 | std         |   8
+ foo bras | bar bras 123 |    26 | std         |  12
+ foo bras | foo          |    23 | std         |   8
+(18 registros)
+
+                    ws_score                    
+------------------------------------------------
+ {"id": "123", "result": 33, "jsonrpc": " 2.0"}
+(1 registro)
+
+=== Scoring string comparisons: =================================
+====== cuting by minimal score (30% of similarity), frist 2 from 3 comparisons:
+ score | sc_type |    term     
+-------+---------+-------------
+   100 | std     | mamãe papai
+    47 | std     | mama pai
+(2 registros)
+
+ score | sc_type | term 
+-------+---------+------
+   100 | std     | foo
+    60 | std     | foos
+    50 | std     | fo
+     0 | std     | bar
+     0 | std     | x
+(5 registros)
+
+====== ... little more complex and exotic parameter variations:
+ score |   sc_type   |     term     
+-------+-------------+--------------
+   100 | levdiffperc | foo
+    67 | levdiffperc | fo
+    25 | levdiffperc | foos bar 123
+(3 registros)
+
+ score |   sc_type   |     term     
+-------+-------------+--------------
+    67 | levdiffperc | fo
+    67 | levdiffperc | foo
+    33 | levdiffperc | x
+    17 | levdiffperc | foos bar 123
+(4 registros)
+
+ score |   sc_type   |     term     
+-------+-------------+--------------
+    67 | levdiffperc | fo
+    67 | levdiffperc | foo
+    38 | levdiffperc | foos bar 123
+    33 | levdiffperc | x
+(4 registros)
+
+====== ... same in JSON and returning JSON:
+                                           score_pairs                                           
+-------------------------------------------------------------------------------------------------
+ {"id": "3333", "result": {"x": 33, "fo": 67, "foo": 67, "foos bar 123": 38}, "jsonrpc": " 2.0"}
+(1 registro)
+
+                                           score_pairs                                           
+-------------------------------------------------------------------------------------------------
+ {"id": "3333", "result": {"x": 33, "fo": 67, "foo": 67, "foos bar 123": 38}, "jsonrpc": " 2.0"}
+(1 registro)
+
+====== basic canonic name resolution:   =================================
+  id   | nsid | score | sc_type |           term            
+-------+------+-------+---------+---------------------------
+ 35407 |    4 |   100 | exact   | universidade de são paulo
+(1 registro)
+
+ qs_in_other_ns 
+----------------
+(0 registro)
+
+                     n2c_tab                     
+-------------------------------------------------
+ (35407,4,100,exact,"universidade de são paulo")
+(1 registro)
+
+ qs_not_valid_name 
+-------------------
+(0 registro)
+
+                        a                        |                                   b                                    
+-------------------------------------------------+------------------------------------------------------------------------
+ (35407,4,100,exact,"universidade de são paulo") | (14017,4,100,exact,"pontifícia universidade católica de minas gerais")
+(1 registro)
+
+====== list synonyms:   =================================
+  id  | nsid | score | sc_type |                                              term                                               
+------+------+-------+---------+-------------------------------------------------------------------------------------------------
+ 7350 |    4 |   100 | exact   | fucape
+ 7351 |    8 |   100 | exact   | fundacao instituto capixaba de pesquisas em contabilidade , economia e financas business school
+ 7352 |    8 |   100 | exact   | fundação instituto capixaba de pesquisas em contabilidade , economia e finanças business school
+(3 registros)
+
+  id   | nsid | score | sc_type |                                          term                                           
+-------+------+-------+---------+-----------------------------------------------------------------------------------------
+ 14015 |    4 |   100 | exact   | puc-betim
+ 14016 |    4 |   100 | exact   | pucmg
+ 14017 |    4 |   100 | exact   | puc-mg
+ 14018 |    4 |   100 | exact   | puc-minas
+ 14021 |    8 |   100 | exact   | pontifical catholic university of minas gerais , puc minas
+ 14024 |    8 |   100 | exact   | pucmg , pontifical catholic university of minas gerais
+ 13994 |   16 |   100 | exact   | pontifícia universidad católica de minas gerais , puc , mg , belo horizonte-mg , brasil
+(7 registros)
+
+====== Using JSON in name resolution and list of synonyms:   ==========
+                                                          n2c                                                           
+------------------------------------------------------------------------------------------------------------------------
+ {"id": 14017, "nsid": 4, "term": "pontifícia universidade católica de minas gerais", "score": 100, "sc_type": "exact"}
+(1 registro)
+
+ n2ns 
+------
+ 
+(1 registro)
+
+                                    n2ns                                     
+-----------------------------------------------------------------------------
+ {"id": 7350, "nsid": 4, "term": "fucape", "score": 100, "sc_type": "exact"}
+(1 registro)
+
+====== END ===========
