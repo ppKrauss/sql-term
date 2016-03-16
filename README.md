@@ -1,14 +1,14 @@
 This project offers a simple database for terminological storage, and illustrates the use of [PostgreSQL textsearch-dictionaries](http://www.postgresql.org/docs/9.1/static/textsearch-dictionaries.html), [dict-xsyn](http://www.postgresql.org/docs/current/static/dict-xsyn.html), [metaphone and levenshtein](http://www.postgresql.org/docs/current/static/fuzzystrmatch.html), in a context of terminological applications (search and admin).  Is supposed that, when all logic is at the (SQL) database, the algorithms can be simpler and faster.
 
 ## Objetive ##
-To present *reference database structure* for "terminology by demand", and offer [requirements](https://en.wikipedia.org/wiki/Software_requirements_specification) and implemantation of a *framework* for manage, search and resolve controled terminologies. Illustrates also a full-SQL-database implementation.
+To present *reference database structure* for "terminology by demand", and offer [requirements](https://en.wikipedia.org/wiki/Software_requirements_specification) and implemantation of a *framework* for manage, search and resolve controled terminologies. Also, as secondary aim, to illustrate a full-SQL implementation.
 
 ## PREPARE ##
 ```
 cd sql-term
 php src/prepare.php
 ```
-The default is ti prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepare term0 Project.
+The default is to prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepare term0 Project.
 
 ## Examples and case uses
 ... As webservice or SQL direct quering... See reference for testing data, [Wayta](http://wayta.scielo.org/).
@@ -17,7 +17,7 @@ The default is ti prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepar
 
 The *Term* table is so simple: each term, canonic or not, is a row in the main table. A secondary table for namespaces, *ns*, split terms in "base" group (theme, corpus or project) and  its "auxiliary" groups, for translations (one namespace for each language) and other dependent namespaces.
 
-UML class diagram of [ini.sql](src/ini.sql):
+UML class diagram of [ini1.sql](src/ini1.sql):
 
 ![uml class diagram](http://yuml.me/fe36a8da)
 
@@ -40,18 +40,7 @@ Some functions can be config to target a specific namespace or  to specific lang
 
 For each namespace the "canonic term" concept can change, from standardized to "most-popular" statistics. Semantic conflict or compromise between canonic term and its synonymous, are both valid, semantic analyses is out of scope of this project. The is_cult flag is an option to 
 
-For searching and resolving, use a base-namespace as target and adopt its mask with `term1.get_basemask(label)` for all searches and resolutions. To offer more specific language-target options in the interface, use `term1.get_baselangs(label)`. 
- 
-3) futuro: lexema também pode ter seu metaphone 
-... restrição de busca por LANG vem do ns_base, mas pode ser uma máscara-ou ... Ver caso Caboverde onde há sempre duas linguas suspeitas, a do país de origem e a do artigo. O usuário pode indicar ordem de busca por línguas, e depois comprar o score... No caso de construção de regex,  
-
-1) getns_base = somente os namespaces-base, como opção de busca
- ... 
-
-
-
-
-
+For searching and resolving, use a base-namespace as target and adopt its mask with `term1.get_basemask(label)` for all searches and resolutions. To offer more specific language-target options in the interface, use `term1.get_baselangs(label)`.
 
 ## Populating with other data
 ... CSV import , SQL import ... Namespaces... 
@@ -60,8 +49,11 @@ For searching and resolving, use a base-namespace as target and adopt its mask w
 
 Use of SQL functions. For function description, see 
 
-* `term1.search2c()`
-
+* `term_lib` functions:
+   * ....
+* `term1` functions:
+   * `term1.search2c()`
+   * ...
 
 ## NOTES
 
