@@ -110,11 +110,18 @@ if (1) {
 
  	  UPDATE term1.term 
  	  SET fk_ns=term1.nsget_nsid('wayta-en')
-	  WHERE (fk_ns=2) AND to_tsvector('simple',term) @@ to_tsquery('simple', 'university|of|the|school'); -- 6038
- 	  	    
+	  WHERE (fk_ns=2) AND to_tsvector('simple',term) @@ to_tsquery('simple', 
+		'university|of|the|school|institute|technology|american|community|college|center|summit|system|health|sciences'
+	  ); -- ~9000
+ 
  	  UPDATE term1.term 
  	  SET fk_ns=term1.nsget_nsid('wayta-es')
-	  WHERE (fk_ns=2) AND to_tsvector('simple',term) @@ to_tsquery('simple', 'universidad|del'); -- 3088
+	  WHERE (fk_ns=2) AND (
+		to_tsvector('simple',term) @@ to_tsquery('simple', 'universidad|del') -- 3088
+		OR lower(jinfo->>'country') IN ('spain','mexico', 'cuba', 'colombia', 'venezuela', 'uruguay', 'peru')
+		-- or-country enfoce but no big risk of mix like english, adds ~2200
+	  );
+
 	", "   ... CANONICOS-3, change namespaces as detected lang\n");
 }
 

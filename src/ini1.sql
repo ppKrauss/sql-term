@@ -1,10 +1,11 @@
 -- 
 -- Module Term, version-1. Term1 adds JSON interface, score metric and tag-relation to Term0.
--- https://github.com/ppKrauss/pgsql-term
--- Copyright by ppkrauss@gmail.com 2016, MIT license.
+-- No optimizations, only functionality profile.
+-- See https://github.com/ppKrauss/pgsql-term
 -- See also http://www.jsonrpc.org/specification
 --
--- nova diretiva = controle de namespaces nas buscas!  por exemplo SciELO precisa separar inglês de portugues
+-- Copyright by ppkrauss@gmail.com 2016, MIT license.
+--
 --
 -- PS: ideal de busca é adaptar à lang da mask a cada busca, ou seja, muda-se o metaphone e/ou vetor de busca conforme namespace
 --   em que se está buscando... Portano um CASE dentro do WHERE, para uma array prefixada em função da fk_ns 
@@ -386,12 +387,43 @@ FROM (
 $f$ LANGUAGE SQL IMMUTABLE;
 
 
+-- -- -- 
+
+CREATE or replace FUNCTION term1.nsget_nsopt2int(JSONB) RETURNS int AS $f$
+	--
+	-- Parses the namespace-setter optional parameters. 'ns', 'ns_mask', 'ns_basemask', 'ns_label', 'ns_count'
+	--
+	DECLARE
+		nsuse boolean DEFAULT false;
+		nsval int;
+	BEGIN
+	IF $1->'ns' IS NOT NULL THEN  -- optimizing and friendling
+		nsval:= CASE jsonb_typeof($1->'ns')
+				WHEN 'number' THEN ($1->>'ns')::int
+				WHEN 'string' THEN term1.nsget_nsid(($1->>'ns')::text)
+				ELSE NULL::int
+			END;
+		IF nsval IS NOT NULL THEN
+			nsuse := true;
+		END IF;
+	END IF;
+	RETURN CASE
+		WHEN nsuse THEN nsval
+		WHEN $1->'ns_mask' IS NOT NULL THEN ($1->>'ns_mask')::int -- same effect as 'ns'
+		WHEN $1->'ns_basemask' IS NOT NULL THEN term1.basemask($1->>'ns_basemask')
+		WHEN $1->'ns_label' IS NOT NULL THEN term1.nsget_nsid(($1->>'ns_label')::text)
+		WHEN $1->'ns_count' IS NOT NULL THEN term1.nsget_nsid(($1->>'ns_count')::int)
+		ELSE NULL 
+	       END;
+	END;
+$f$ LANGUAGE PLpgSQL IMMUTABLE;
+
 
 -- -- -- -- -- -- -- 
 -- TERM1 TERM-RESOLVERS:
 CREATE TYPE term1.tab AS (id int, nsid int, score int, sc_type text, term text);
 
-CREATE or replace FUNCTION term1.N2C_tab(
+CREATE FUNCTION term1.N2C_tab(
 	-- 
 	-- Returns de canonic term from a valid term of a namespace.
 	-- Exs. SELECT *  FROM term1.N2C_tab(' - USP - ','wayta-pt'::text,false); 
@@ -407,19 +439,42 @@ CREATE or replace FUNCTION term1.N2C_tab(
 $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION term1.N2C_tab(text,text,boolean DEFAULT true) RETURNS SETOF term1.tab  AS $f$
-  -- overloading 
-  SELECT term1.N2C_tab($1, term1.basemask($2), $3);
+	-- overloading, wrap for N2C_tab() and   basemask().
+	SELECT term1.N2C_tab($1, term1.basemask($2), $3);
 $f$ LANGUAGE SQL IMMUTABLE;
 
-CREATE or replace FUNCTION term1.N2C(JSONB) RETURNS JSONB AS $f$
---- revisar
-	-- JSONB io overloading
-	-- ex. SELECT term1.N2C('{"qs":"puc-mg","nsmask":30,"qs_is_normalized":true}'::jsonb);
-	SELECT to_jsonb(t) FROM term1.N2C_tab($1->>'qs', term1.nsget_opt2int($1), ($1->>'qs_is_normalized')::boolean) t;
-$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.N2C(
+	-- Wrap for JSONB and outputs as RPC
+	JSONB  -- see all valid params
+) RETURNS JSONB AS $f$
+DECLARE
+	p JSONB;
+	r JSONB;
+	p_id text;
+BEGIN
+	p  :=  term_lib.jparams(
+		$1,
+		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
+	);
+	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
+	SELECT CASE p->>'otype'
+		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
+		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
+		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
+		END
+	INTO r
+	FROM term1.N2c_tab(
+		p->>'qs', term1.nsget_nsopt2int(p), (p->>'qs_is_normalized')::boolean
+	) t;
+	RETURN 	 r;
+END;
+$f$ LANGUAGE PLpgSQL IMMUTABLE;
+
 
 -- -- --
 -- N2Ns:
+
 CREATE FUNCTION term1.N2Ns_tab(
 	-- 
 	-- Returns canonic and all the synonyms of a valid term (of a namespace).
@@ -427,37 +482,55 @@ CREATE FUNCTION term1.N2Ns_tab(
 	--
 	text,            	-- 1. valid term
 	int DEFAULT 1,     	-- 2. namespace MASK
-	boolean DEFAULT true	-- 3. exact (true) or apply normalization (false)
+	boolean DEFAULT true,	-- 3. exact (true) or apply normalization (false)
+	boolean DEFAULT true	-- 4. (non-used, enforcing sort) to sort by ns, term
 ) RETURNS SETOF term1.tab AS $f$
+   -- TO DO: optimize (see explain) and simplify using term1.term_full 
    SELECT t.id, t.fk_ns as nsid, 100::int, 'exact'::text, t.term
-   FROM term1.term t, (
-	   SELECT CASE WHEN is_canonic THEN -- mais de 50%
+   FROM term1.term t  INNER JOIN   (
+	SELECT CASE WHEN is_canonic THEN -- caso comum, mais de 60% sao canonicos
 			s.id 
-		ELSE (SELECT id FROM term1.term_canonic t WHERE t.id=s.fk_canonic) 
+		ELSE (SELECT id FROM term1.term_canonic t WHERE t.id=s.fk_canonic) -- caso nao-canonico
 		END as canonic_id
 	   FROM term1.term s
 	   WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $3 THEN term=$1 ELSE term=term_lib.normalizeterm($1) END
-   ) c
-   WHERE t.id=c.canonic_id OR fk_canonic=c.canonic_id
+       ) c
+       ON t.id=c.canonic_id OR fk_canonic=c.canonic_id
    ORDER BY t.fk_ns, t.term;
 $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION term1.N2Ns_tab(text,text,boolean DEFAULT true) RETURNS SETOF term1.tab AS $f$
-	SELECT term1.N2Ns_tab($1, term1.basemask($2), $3);
+	-- Wrap for N2Ns_tab() and nsget_nsid().
+	SELECT term1.N2Ns_tab($1, term1.nsget_nsid($2), $3);  -- old basemask(), preffer restrictive
 $f$ LANGUAGE SQL IMMUTABLE;
 
-CREATE FUNCTION term1.N2Ns(JSONB) RETURNS JSONB AS $f$
--- revisar, dar opções de ns_mask=dado, ns_maskbase=term1.basemask(), ns_masklabel=term1.getns_by?() e ns_maskcount=term1.getns_by?()
-	-- JSONB io overloading
-	-- ex. SELECT term1.N2Ns('{"qs":"fumcap","basemask":"wayta-pt","qs_is_normalized":true}'::jsonb);
-	SELECT to_jsonb(t) FROM term1.N2Ns_tab($1->>'qs', term1.nsget_opt2int($1), ($1->>'qs_is_normalized')::boolean) t;
-$f$ LANGUAGE SQL IMMUTABLE;
 
-CREATE FUNCTION term1.nsget_opt2int(JSONB) RETURNS int AS $f$
---  dar opções de ns_mask=dado, ns_maskbase=term1.basemask(), ns_masklabel=term1.getns_by?() e ns_maskcount=term1.getns_by?()
-	-- nao confere se era válido como mascara
-$f$ LANGUAGE SQL IMMUTABLE;
-
+CREATE FUNCTION term1.N2Ns(
+	-- Wrap for JSONB and outputs as RPC
+	JSONB  -- see all valid params
+) RETURNS JSONB AS $f$
+DECLARE
+	p JSONB;
+	r JSONB;
+	p_id text;
+BEGIN
+	p  :=  term_lib.jparams(
+		$1,
+		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
+	);
+	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
+	SELECT CASE p->>'otype'
+		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
+		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
+		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
+		END
+	INTO r
+	FROM term1.N2Ns_tab(
+		p->>'qs', term1.nsget_nsopt2int(p), (p->>'qs_is_normalized')::boolean
+	) t;
+	RETURN 	 r;
+END;
+$f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
 -- -- -- -- -- -- -- --
@@ -563,6 +636,7 @@ BEGIN
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 CREATE FUNCTION term1.search(JSONB) RETURNS JSONB AS $f$
+--  BUG
 	-- Wrap function for term1.search_tab(), returning standard JSON-RPC.
 	SELECT 	term_lib.jrpc_ret(
 			jsonb_agg( to_jsonb(t) ),  

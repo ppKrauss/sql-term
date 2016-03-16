@@ -2,34 +2,34 @@
 === Running: basic1 examples ====================================
 =================================================================
 
-=== Namespaces: ================
- nscount | nsid |   label    | lang | is_base | fk_partof | kx_regconf 
----------+------+------------+------+---------+-----------+------------
-       1 |    1 | test       | pt   | t       |           | portuguese
-       2 |    2 | wayta-pt   | pt   | t       |           | portuguese
-       3 |    4 | wayta-code |      | f       |         2 | simple
-       4 |    8 | wayta-en   | en   | f       |         2 | english
-       5 |   16 | wayta-es   | es   | f       |         2 | spanish
-(5 registros)
+=== Term_lib public functions: ==================================
+                     normalizeterm                      
+--------------------------------------------------------
+ test test0 , test , test2 , test2 , test3 , test4.test
+(1 registro)
 
-=== Testing mask performance and counting namespace of group: ===
-   label    | is_base |   n   
-------------+---------+-------
- wayta-pt   | t       | 31512
- wayta-code | f       |   517
- wayta-en   | f       |  6038
- wayta-es   | f       |  3088
-(4 registros)
+  multimetaphone  |  multimetaphone   
+------------------+-------------------
+ PRLLPP KTRT T MR | PRLLPPT&KTRT&T&MR
+(1 registro)
 
-=== Only base-namespaces: =======================================
-  label   | is_base |   n   
-----------+---------+-------
- test     | t       |   302
- wayta-pt | t       | 31512
-(2 registros)
+ mask |               mask               
+------+----------------------------------
+   14 | 00000000000000000000000000001110
+(1 registro)
 
 === Compare score functions: ====================================
-    x     |     cmp      | score |      f      | len 
+ score 
+-------
+    50
+(1 registro)
+
+ score | sc_type | term 
+-------+---------+------
+    50 | std     | fox
+(1 registro)
+
+    qs    |     term     | score |   sc_func   | len 
 ----------+--------------+-------+-------------+-----
  foo bras | foo bras     |   500 | lev500      |   8
  foo bras | foo bris     |   499 | lev500      |   8
@@ -51,10 +51,42 @@
  foo bras | foo          |    23 | std         |   8
 (18 registros)
 
+=== Check function behaviour by webservice: ===============
                     ws_score                    
 ------------------------------------------------
  {"id": "123", "result": 33, "jsonrpc": " 2.0"}
 (1 registro)
+
+=== Namespaces: =================================================
+ nscount | nsid |   label    | lang | is_base | fk_partof | kx_regconf 
+---------+------+------------+------+---------+-----------+------------
+       1 |    1 | test       | pt   | t       |           | portuguese
+       2 |    2 | wayta-pt   | pt   | t       |           | portuguese
+       3 |    4 | wayta-code |      | f       |         2 | simple
+       4 |    8 | wayta-en   | en   | f       |         2 | english
+       5 |   16 | wayta-es   | es   | f       |         2 | spanish
+(5 registros)
+
+ basemask 
+----------
+       30
+(1 registro)
+
+=== Testing mask performance and counting namespace of group: ===
+   label    | is_base |   n   
+------------+---------+-------
+ wayta-pt   | t       | 31512
+ wayta-code | f       |   517
+ wayta-en   | f       |  6038
+ wayta-es   | f       |  3088
+(4 registros)
+
+=== Only base-namespaces: =======================================
+  label   | is_base |   n   
+----------+---------+-------
+ test     | t       |   302
+ wayta-pt | t       | 31512
+(2 registros)
 
 === Scoring string comparisons: =================================
 ====== cuting by minimal score (30% of similarity), frist 2 from 3 comparisons:
@@ -107,6 +139,42 @@
 -------------------------------------------------------------------------------------------------
  {"id": "3333", "result": {"x": 33, "fo": 67, "foo": 67, "foos bar 123": 38}, "jsonrpc": " 2.0"}
 (1 registro)
+
+====== Terms, some samples and info retrieval:   ========================
+  id   | fk_ns |       term       | fk_canonic | is_canonic | is_cult |  created   |                                                                         jinfo                                                                         | kx_metaphone |     kx_tsvector     
+-------+-------+------------------+------------+------------+---------+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+--------------+---------------------
+ 14246 |     4 | praxishochschule |            | t          |         | 2016-03-13 | {"city": "Köln", "form": "praxisHochschule", "iso2": "DE", "state": "Nordrhein-Westfalen", "source": "data/normalized_aff.csv", "country": "Germany"} | PRKSXX       | 'praxishochschul':1
+ 31714 |     4 | sunnyvale        |            | t          |         | 2016-03-13 | {"city": "Sunnyvale", "form": "Sunnyvale", "iso2": "US", "state": "California", "source": "data/normalized_aff.csv", "country": "USA"}                | SNFL         | 'sunnyval':1
+ 32488 |     4 | unitrabalho      |            | t          |         | 2016-03-13 | {"city": "", "form": "Unitrabalho", "iso2": "BR", "state": "", "source": "data/normalized_aff.csv", "country": "Brazil"}                              | UNTRBL       | 'unitrabalh':1
+(3 registros)
+
+  id   |       term       |   label    | is_base 
+-------+------------------+------------+---------
+ 14246 | praxishochschule | wayta-code | f
+ 31714 | sunnyvale        | wayta-code | f
+ 32488 | unitrabalho      | wayta-code | f
+(3 registros)
+
+  id   |   canonic_term   
+-------+------------------
+ 14246 | praxishochschule
+ 31714 | sunnyvale
+ 32488 | unitrabalho
+(3 registros)
+
+  id   | synonym_term 
+-------+--------------
+ 14062 | puc-sorocaba
+ 14063 | pucsp
+ 14064 | puc-sp
+(3 registros)
+
+  id   | synonym_term |                 term_canonic                  
+-------+--------------+-----------------------------------------------
+ 14062 | puc-sorocaba | pontifícia universidade católica de são paulo
+ 14063 | pucsp        | pontifícia universidade católica de são paulo
+ 14064 | puc-sp       | pontifícia universidade católica de são paulo
+(3 registros)
 
 ====== basic canonic name resolution:   =================================
   id   | nsid | score | sc_type |           term            
