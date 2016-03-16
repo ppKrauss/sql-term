@@ -6,9 +6,6 @@
 --
 -- Copyright by ppkrauss@gmail.com 2016, MIT license.
 --
---
--- PS: ideal de busca é adaptar à lang da mask a cada busca, ou seja, muda-se o metaphone e/ou vetor de busca conforme namespace
---   em que se está buscando... Portano um CASE dentro do WHERE, para uma array prefixada em função da fk_ns 
 
 DROP SCHEMA IF EXISTS term_lib CASCADE;
 
