@@ -10,8 +10,17 @@ php src/prepare.php
 ```
 The default is to prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepare term0 Project.
 
-## Examples and case uses
-... As webservice or SQL direct quering... See reference for testing data, [Wayta](http://wayta.scielo.org/).
+### Examples and case uses
+The functions can be used as webservice or in SQL  queries. About webservice applications, see the main reference-example,  [Wayta](http://wayta.scielo.org/).  The [examples folder](examples) can be used for didactic "learling by examples", and for software tesing, as [diff asserts](https://en.wikipedia.org/wiki/Assertion_(software_development)).
+
+Typical usage on terminal:
+```
+cd sql-term
+psql -h localhost -U postgres postgres < examples/basic1.sql | more
+# or
+psql -h localhost -U postgres postgres < examples/basic1.sql >  test.txt
+diff test.txt examples/basic1.dump.txt
+```
 
 ## Modeling ##
 
