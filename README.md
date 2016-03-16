@@ -68,9 +68,9 @@ Use of SQL functions. For function description, see
 
 * [Using metaphone as lexeme](http://stackoverflow.com/questions/4001579/postgresql-full-text-search-randomly-dropping-lexemes).
 
-* PostreSQL guide, 
-** [Text search dictionaries](http://www.postgresql.org/docs/9.1/static/textsearch-dictionaries.html#TEXTSEARCH-THESAURUS)
-** [runtime-config-client](http://www.postgresql.org/docs/current/static/runtime-config-client.html#GUC-DEFAULT-TEXT-SEARCH-CONFIG)
+* PostreSQL guide,
+  * [Text search dictionaries](http://www.postgresql.org/docs/9.1/static/textsearch-dictionaries.html#TEXTSEARCH-THESAURUS)
+  * [runtime-config-client](http://www.postgresql.org/docs/current/static/runtime-config-client.html#GUC-DEFAULT-TEXT-SEARCH-CONFIG)
 
 * Testing dataset: [Wayta site](http://wayta.scielo.org/) and [Wayta dataset](https://github.com/scieloorg/wayta).
 
