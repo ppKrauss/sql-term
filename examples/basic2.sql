@@ -27,12 +27,13 @@ WITH ns AS (SELECT nsid FROM term1.ns WHERE (nsid&term1.basemask('wayta-pt'))::b
   ORDER BY 3 DESC,1
   LIMIT 10;
 
-\qecho '====== Some namespace parameterization options:   =================='
+
+\qecho '====== Some namespace parameterization options:   ==============='
 select term1.nsget_nsopt2int('{"ns_basemask":"wayta-pt","etc":"etc"}'::jsonb);  -- a mask for all related namespaces
 select term1.nsget_nsopt2int('{"ns":"wayta-code","etc":"etc"}'::jsonb);	-- the namespace code by its label
 select term1.nsget_nsopt2int('{"ns":"waita-pt","etc":"etc"}'::jsonb); 	-- the label not exist
 
-\qecho '====== Behaviour of each search() variation:   =================='
+\qecho '====== Behaviour of each search_tab() variation:   =================='
 select * from term1.search_tab('{"op":"=","qs":"embrapa","ns":"wayta-code"}'::jsonb); --ok
 select * from term1.search_tab('{"op":"=","qs":"embrapa","ns_basemask":"wayta-pt"}'::jsonb); --ok
 select * from term1.search_tab('{"op":"=","qs":"embrapa","ns":"wayta-pt"}'::jsonb); --ok, is NULL
@@ -47,6 +48,26 @@ select count(*) from term1.search_tab('{"op":"p","qs":"embrapa","ns_basemask":"w
 select count(*) from term1.search_tab('{"op":"&","qs":"embrapa","ns":"wayta-code","lim":null}'::jsonb); --ok, 0, no exact term on wayta-code ns
 select count(*) from term1.search_tab('{"op":"&","qs":"embrapa","ns_basemask":"wayta-pt","lim":null}'::jsonb); --ok, 391 on expanded ns mask
 
+\qecho '====== Behaviour of each search_tab() on Metaphone variations:   ===='
+select * from term1.search_tab('{"op":"=","qs":"embripo","ns":"wayta-code","metaphone":true}'::jsonb) as "with Metaphone"; --ok
+select * from term1.search_tab('{"op":"=","qs":"embripo","ns":"wayta-code","metaphone":false}'::jsonb) as "without Metaphone"; --ok
+
+select * from term1.search_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb); 
+
+select * from term1.search_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb); 
+select count(*) from term1.search_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+select count(*) from term1.search_tab('{"op":"%","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
+
+select count(*) from term1.search_tab('{"op":"p","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+select count(*) from term1.search_tab('{"op":"p","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
+
+select count(*) from term1.search_tab('{"op":"&","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+select count(*) from term1.search_tab('{"op":"&","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
+
+\qecho '====== Using search() to illustrate complete JSON i/o   ===='
+select term1.search('{"id":123,"op":"=","qs":"embrapa","ns":"wayta-code","lim":1,"otype":"l"}'::jsonb); 
+select term1.search('{"id":123,"op":"p","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
+select term1.search('{"id":123,"op":"&","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
 
 -- term_lib.score_pairs
 

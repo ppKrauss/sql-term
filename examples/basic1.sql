@@ -20,6 +20,7 @@ SELECT mask,  mask::bit(32) FROM t;
 
 \qecho '=== Compare score functions: ===================================='
 SELECT term_lib.score('foo','fox');
+
 SELECT * FROM term_lib.score_pairs_tab('foo',array['fox']);
 
 WITH word AS (
@@ -100,9 +101,6 @@ SELECT term1.N2Ns('{"qs":"fucape","ns":"wayta-code","qs_is_normalized":true}'::j
 SELECT term1.N2Ns('{"qs":"xxfucape","ns":"wayta-code","qs_is_normalized":true}'::jsonb);
 
 SELECT term1.N2Ns('{"id":123,"qs":"fucape","ns":"wayta-code","qs_is_normalized":true,"otype":"a"}'::jsonb) as "N2Ns array";
-
-
-
 
 
 

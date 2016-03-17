@@ -363,6 +363,9 @@ CREATE VIEW term1.term_ns AS
 --- TERM1 PUBLIC LIB 
 ---  ---  ---  ---  ---
 
+-- -- -- -- -- -- -- -- --
+-- namespace wrappers:
+
 CREATE FUNCTION term1.basemask(
 	--
 	-- Generates a nsmask of all namespaces of a base-namespace. 
@@ -382,6 +385,42 @@ FROM (
 ) t;
 $f$ LANGUAGE SQL IMMUTABLE;
 
+
+CREATE FUNCTION term1.nsget_nsid(text) RETURNS int AS $f$ SELECT nsid FROM term1.ns WHERE label=$1; $f$ LANGUAGE SQL IMMUTABLE;
+CREATE FUNCTION term1.nsget_nsid(int) RETURNS int AS $f$ SELECT nsid FROM term1.ns WHERE nscount=$1::smallint; $f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.nsget_conf(int,boolean DEFAULT true) RETURNS regconfig AS $f$
+	-- 
+	-- Namespace language by its nscount (or nsid when $2 false)
+	--
+	SELECT kx_regconf FROM term1.ns WHERE CASE WHEN $2 THEN nscount=$1::smallint ELSE nsid=$1 END;
+$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.nsget_conf(text) RETURNS regconfig AS $f$
+	-- 
+	-- Namespace language by its label
+	--
+	SELECT kx_regconf FROM term1.ns WHERE label=$1;
+$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.nsget_lang(int,boolean DEFAULT false) RETURNS char(2) AS $f$
+	-- 
+	-- Namespace language by its nscount (or nsid when $2 false)
+	--
+	SELECT lang FROM term1.ns WHERE CASE WHEN $2 THEN nscount=$1::smallint ELSE nsid=$1 END;
+ 	-- NULL is error, '' is a valid "no language"
+$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.lang2regconf(text) RETURNS regconfig AS $f$
+	-- 
+	-- Convention to convert iso2 into regconfig for indexing words. See kx_regconf.
+	--
+	SELECT  (('{"pt":"portuguese","en":"english","es":"spanish","":"simple","  ":"simple"}'::jsonb)->>$1)::regconfig
+$f$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION term1.set_regconf(anyelement,text) RETURNS regconfig AS $f$  --revisar usabilidade do anyelement
+	SELECT  COALESCE( term1.nsget_conf($1), term1.lang2regconf($2) );
+$f$ LANGUAGE SQL IMMUTABLE;
 
 -- -- -- 
 
@@ -577,7 +616,7 @@ BEGIN
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.kx_metaphone = term_lib.multimetaphone(p_qs,p_mlen,' ')
-			ORDER BY 3 DESC, 2
+			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		WHEN '%','p','s' THEN 	 	-- s'equence OR p'refix
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
@@ -585,7 +624,7 @@ BEGIN
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.kx_metaphone LIKE (
 				CASE WHEN p->>'op'='p' THEN '' ELSE '%' END || term_lib.multimetaphone(p_qs,p_mlen,'%') || '%'
 			) 
-			ORDER BY 3 DESC, 2			
+			ORDER BY 4 DESC, 3			
 			LIMIT p_lim;
 		ELSE  				-- pending, needs also "free tsquery" in $2 for '!' use and complex expressions
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
@@ -594,7 +633,7 @@ BEGIN
 				'simple',
 				term_lib.multimetaphone(p_qs,p_mlen,p->>'op'::text)
 			) 
-			ORDER BY 3 DESC, 2
+			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		END CASE;
 
@@ -604,7 +643,7 @@ BEGIN
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.term = p_qs
-			ORDER BY 3 DESC, 2
+			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		WHEN '%', 'p', 's' THEN  	-- 's'equence or 'p'refix
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
@@ -612,7 +651,7 @@ BEGIN
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.term LIKE (
 				CASE WHEN  p->>'op'='p' THEN '' ELSE '%' END || replace(p_qs, ' ', '%')  || '%'
 			) 
-			ORDER BY 3 DESC, 2
+			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		ELSE				-- '&', '|', etc. resolved by tsquery.
 			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
@@ -620,7 +659,7 @@ BEGIN
 			WHERE (t.fk_ns&p_nsmask)::boolean AND kx_tsvector @@ to_tsquery(   -- not optimized
 				kx_regconf,  replace(p_qs,' ',p->>'op')
 			)
-			ORDER BY 3 DESC, 2
+			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		END CASE;
 	END IF;
@@ -630,18 +669,34 @@ BEGIN
 	--  * "free tsquery" in  p->>'op', for '!' and other complex qsquery expressions.
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
+CREATE FUNCTION term1.search(
+	-- Wrap for JSONB and outputs as RPC. Se #SQL-TEMPLATE of term1.N2C().
+	JSONB  -- see all valid params
+) RETURNS JSONB AS $f$
+DECLARE
+	p JSONB;
+	r JSONB;
+	p_id text;
+BEGIN
+	p  :=  term_lib.jparams(
+		$1,
+		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
+	);
+	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
+	
+	SELECT CASE p->>'otype'
+		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
+		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
+		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
+		END
+	INTO r
+	FROM term1.search_tab(p) t;
+	
+	RETURN 	 r;
+END;
+$f$ LANGUAGE PLpgSQL IMMUTABLE;
 
-
-CREATE FUNCTION term1.search(JSONB) RETURNS JSONB AS $f$
---  BUG
-	-- Wrap function for term1.search_tab(), returning standard JSON-RPC.
-	SELECT 	term_lib.jrpc_ret(
-			jsonb_agg( to_jsonb(t) ),  
-			$1->>'id'
-		)
-	FROM term1.search_tab($1) t
-$f$ LANGUAGE SQL IMMUTABLE;
-
+---
 
 CREATE FUNCTION term1.search2c_tab(
 	--
@@ -752,53 +807,6 @@ BEGIN
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
--- -- -- -- -- -- -- -- --
--- lang and conf wrappers:
-
--- see also term1.basemask().
-CREATE FUNCTION term1.nsget_nsid(text) RETURNS int AS $f$ SELECT nsid FROM term1.ns WHERE label=$1; $f$ LANGUAGE SQL IMMUTABLE;
-CREATE FUNCTION term1.nsget_nsid(int) RETURNS int AS $f$ SELECT nsid FROM term1.ns WHERE nscount=$1::smallint; $f$ LANGUAGE SQL IMMUTABLE;
-
-CREATE FUNCTION term1.nsget_lang(int,boolean DEFAULT true) RETURNS char(2) AS $f$
--- 
--- Namespace language by its nscount (or nsid when $2 false)
---
-	SELECT lang FROM term1.ns WHERE CASE WHEN $2 THEN nscount=$1::smallint ELSE nsid=$1 END;
- 	-- NULL is error, '' is a valid "no language"
-$f$ LANGUAGE SQL IMMUTABLE;
-CREATE FUNCTION term1.lang2regconf(lang char(2)) RETURNS regconfig AS $f$
--- 
--- Convention to convert iso2 into regconfig for indexing words. See kx_regconf.
---
-	SELECT  (('{"pt":"portuguese","en":"english","es":"spanish","":"simple","  ":"simple"}'::jsonb)->>$1)::regconfig
-$f$ LANGUAGE SQL IMMUTABLE;
-
-
-
-CREATE FUNCTION term1.nsget_conf(int,boolean DEFAULT true) RETURNS regconfig AS $f$
--- 
--- Namespace language by its nscount (or nsid when $2 false)
---
-	SELECT kx_regconf FROM term1.ns WHERE CASE WHEN $2 THEN nscount=$1::smallint ELSE nsid=$1 END;
-$f$ LANGUAGE SQL IMMUTABLE;
-CREATE FUNCTION term1.nsget_conf(text) RETURNS regconfig AS $f$
--- 
--- Namespace language by its label
---
-	SELECT kx_regconf FROM term1.ns WHERE label=$1;
-$f$ LANGUAGE SQL IMMUTABLE;
-CREATE FUNCTION term1.lang2regconf(lang char(2),nscount int,boolean DEFAULT true) RETURNS regconfig AS $f$
--- 
--- Overload for lang=NULL and nscount/nsid option.
---
-	SELECT  COALESCE( term1.lang2regconf($1), term1.nsget_conf($2,$3) );
-$f$ LANGUAGE SQL IMMUTABLE;
-
-CREATE FUNCTION term1.set_regconf(anyelement,text) RETURNS regconfig AS $f$  --revisar usabilidade do anyelement
-	SELECT  COALESCE( term1.nsget_conf($1), term1.lang2regconf($2) );
-$f$ LANGUAGE SQL IMMUTABLE;
-
-
 
 ---  ---  ---  ---  ---  ---  ---  ---  --- 
 ---  ---  ---  ---  ---  ---  ---  ---  --- 
@@ -832,7 +840,7 @@ DECLARE
 BEGIN
 	NEW.term := term_lib.normalizeterm(NEW.term); -- or kx_normalizedterm
 	NEW.kx_metaphone := term_lib.multimetaphone(NEW.term,6);  -- IMPORTANT 6, to use in ALL DEFAULTS
-	NEW.kx_tsvector := to_tsvector('portuguese', NEW.term); -- use term1.ns.lang!
+	NEW.kx_tsvector  := to_tsvector( term1.lang2regconf(term1.nsget_lang(NEW.fk_ns)), NEW.term);
 	RETURN NEW;
 END;
 $f$ LANGUAGE PLpgSQL;
@@ -840,7 +848,6 @@ CREATE TRIGGER check_term
     BEFORE INSERT OR UPDATE ON term1.term
     FOR EACH ROW EXECUTE PROCEDURE term1.input_term()
 ;
-
 
 CREATE FUNCTION term1.upsert(
 	-- 
@@ -876,7 +883,6 @@ END;
 $f$ LANGUAGE PLpgSQL;
 
 
-
 CREATE FUNCTION term1.ns_upsert(
 	--
 	-- Inserts when not exist, and sanitize label. Returns ID of the label.
@@ -897,7 +903,5 @@ BEGIN
 	RETURN r_id;
 END;
 $f$ LANGUAGE PLpgSQL;
-
-
 
 

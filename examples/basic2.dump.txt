@@ -53,7 +53,7 @@
  univers     |      3 |     2606 |      2674
 (10 registros)
 
-====== Some namespace parameterization options:   ==================
+====== Some namespace parameterization options:   ===============
  nsget_nsopt2int 
 -----------------
               30
@@ -69,7 +69,7 @@
                 
 (1 registro)
 
-====== Behaviour of each search() variation:   ==================
+====== Behaviour of each search_tab() variation:   ==================
   id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
 ------+------+---------+-------+---------+------------+------------
  4580 |    4 | embrapa |   100 |         | t          |           
@@ -84,13 +84,13 @@
 ----+------+------+-------+---------+------------+------------
 (0 registro)
 
-  id  | nsid |     term      | score | sc_type | is_canonic | fk_canonic 
-------+------+---------------+-------+---------+------------+------------
- 4616 |    4 | iiiembrapa    |    54 |         | f          |       4580
- 4615 |    4 | iiembrapa     |    64 |         | f          |       4580
- 4614 |    4 | iica-embrapa  |    41 |         | f          |       4580
- 4612 |    4 | iembrapa      |    78 |         | f          |       4580
- 4914 |    4 | embrapa-uepae |    37 |         | f          |       4911
+  id  | nsid |    term    | score | sc_type | is_canonic | fk_canonic 
+------+------+------------+-------+---------+------------+------------
+ 4580 |    4 | embrapa    |   100 |         | t          |           
+ 4612 |    4 | iembrapa   |    78 |         | f          |       4580
+ 4615 |    4 | iiembrapa  |    64 |         | f          |       4580
+ 4592 |    4 | embrapa-rj |    54 |         | f          |       4580
+ 4616 |    4 | iiiembrapa |    54 |         | f          |       4580
 (5 registros)
 
  count 
@@ -115,11 +115,81 @@
 
  count 
 -------
-     0
+     1
 (1 registro)
 
  count 
 -------
-   391
+   392
+(1 registro)
+
+====== Behaviour of each search_tab() on Metaphone variations:   ====
+  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
+------+------+---------+-------+---------+------------+------------
+ 4580 |    4 | embrapa |    56 |         | t          |           
+(1 registro)
+
+ id | nsid | term | score | sc_type | is_canonic | fk_canonic 
+----+------+------+-------+---------+------------+------------
+(0 registro)
+
+  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
+------+------+---------+-------+---------+------------+------------
+ 4580 |    4 | embrapa |    45 |         | t          |           
+(1 registro)
+
+  id  | nsid |     term      | score | sc_type | is_canonic | fk_canonic 
+------+------+---------------+-------+---------+------------+------------
+ 4580 |    4 | embrapa       |    45 |         | t          |           
+ 5052 |    4 | embrapa-trigo |    30 |         | f          |       5045
+ 4675 |    4 | embrapa-cpao  |    26 |         | f          |       4678
+ 4998 |    4 | embrapa-soja  |    26 |         | f          |       4992
+ 4592 |    4 | embrapa-rj    |    25 |         | f          |       4580
+(5 registros)
+
+ count 
+-------
+    47
+(1 registro)
+
+ count 
+-------
+   438
+(1 registro)
+
+ count 
+-------
+    47
+(1 registro)
+
+ count 
+-------
+   365
+(1 registro)
+
+ count 
+-------
+     1
+(1 registro)
+
+ count 
+-------
+   310
+(1 registro)
+
+====== Using search() to illustrate complete JSON i/o   ====
+                                                                             search                                                                              
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": [{"id": 4580, "nsid": 4, "term": "embrapa", "score": 100, "sc_type": null, "fk_canonic": null, "is_canonic": true}], "jsonrpc": " 2.0"}
+(1 registro)
+
+                                       search                                       
+------------------------------------------------------------------------------------
+ {"id": "123", "result": {"embrapa": "100", "embrapa-rj": "54"}, "jsonrpc": " 2.0"}
+(1 registro)
+
+                             search                             
+----------------------------------------------------------------
+ {"id": "123", "result": {"embrapa": "100"}, "jsonrpc": " 2.0"}
 (1 registro)
 
