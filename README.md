@@ -29,7 +29,7 @@ the database user (`-U postgres`)  must be conform edited `$PG_USER`. If databas
 
 The *Term* table is so simple: each term, canonic or not, is a row in the main table. A secondary table for namespaces, *ns*, split terms in "base" group (theme, corpus or project) and  its "auxiliary" groups, for translations (one namespace for each language) and other dependent namespaces.
 
-UML class diagram of [ini1.sql](src/ini1.sql):
+UML class diagram of *SCHEMA term1* tables and views, at [ini1.sql](src/ini1.sql):
 
 ![uml class diagram](http://yuml.me/fe36a8da)
 
