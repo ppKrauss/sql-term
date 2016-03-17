@@ -13,7 +13,7 @@ php src/prepare.php
 The default is to prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepare term0 Project.
 
 ### Examples and case uses
-The functions can be used as webservice or in SQL  queries. About webservice applications, see the main reference-example,  [Wayta](http://wayta.scielo.org/).  The [examples folder](examples) can be used for didactic "learling by examples", and for software tesing, as [diff asserts](https://en.wikipedia.org/wiki/Assertion_(software_development)).
+The functions can be used as webservice or in SQL  queries. About webservice applications, see [Wayta](http://wayta.scielo.org/), the main reference-example.  For other uses and details, the [examples folder](examples) are didactic (for "learling by examples") and plays role of tesing module, as [diff asserts](https://en.wikipedia.org/wiki/Assertion_(software_development)).
 
 Typical usage on terminal:
 ```
