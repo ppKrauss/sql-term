@@ -5,7 +5,9 @@ To present *reference database structure* for "terminology by demand", and offer
 
 ## PREPARE ##
 ```
+git clone https://github.com/ppKrauss/sql-term.git
 cd sql-term
+nano src/omLib.php # edit variables $PG_USER and $PG_PW
 php src/prepare.php
 ```
 The default is to prepare `term1`, edit *$modeVers* (at `prepare.php`) to prepare term0 Project.
@@ -21,6 +23,7 @@ psql -h localhost -U postgres postgres < examples/basic1.sql | more
 psql -h localhost -U postgres postgres < examples/basic1.sql >  test.txt
 diff test.txt examples/basic1.dump.txt
 ```
+the database user (`-U postgres`)  must be conform edited `$PG_USER`. If database name also changed, the `psql` commands also must be changed.
 
 ## Modeling ##
 
