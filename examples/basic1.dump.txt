@@ -75,17 +75,17 @@
 === Testing mask performance and counting namespace of group: ===
    label    | is_base |   n   
 ------------+---------+-------
- wayta-pt   | t       | 31512
+ wayta-pt   | t       | 26136
  wayta-code | f       |   517
- wayta-en   | f       |  6038
- wayta-es   | f       |  3088
+ wayta-en   | f       |  9169
+ wayta-es   | f       |  5333
 (4 registros)
 
 === Only base-namespaces: =======================================
   label   | is_base |   n   
 ----------+---------+-------
  test     | t       |   302
- wayta-pt | t       | 31512
+ wayta-pt | t       | 26136
 (2 registros)
 
 === Scoring string comparisons: =================================
@@ -140,99 +140,71 @@
  {"id": "3333", "result": {"x": 33, "fo": 67, "foo": 67, "foos bar 123": 38}, "jsonrpc": " 2.0"}
 (1 registro)
 
-====== Terms, some samples and info retrieval:   ========================
-  id   | fk_ns |       term       | fk_canonic | is_canonic | is_cult |  created   |                                                                         jinfo                                                                         | kx_metaphone |     kx_tsvector     
--------+-------+------------------+------------+------------+---------+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+--------------+---------------------
- 14246 |     4 | praxishochschule |            | t          |         | 2016-03-13 | {"city": "Köln", "form": "praxisHochschule", "iso2": "DE", "state": "Nordrhein-Westfalen", "source": "data/normalized_aff.csv", "country": "Germany"} | PRKSXX       | 'praxishochschul':1
- 31714 |     4 | sunnyvale        |            | t          |         | 2016-03-13 | {"city": "Sunnyvale", "form": "Sunnyvale", "iso2": "US", "state": "California", "source": "data/normalized_aff.csv", "country": "USA"}                | SNFL         | 'sunnyval':1
- 32488 |     4 | unitrabalho      |            | t          |         | 2016-03-13 | {"city": "", "form": "Unitrabalho", "iso2": "BR", "state": "", "source": "data/normalized_aff.csv", "country": "Brazil"}                              | UNTRBL       | 'unitrabalh':1
-(3 registros)
-
-  id   |       term       |   label    | is_base 
--------+------------------+------------+---------
- 14246 | praxishochschule | wayta-code | f
- 31714 | sunnyvale        | wayta-code | f
- 32488 | unitrabalho      | wayta-code | f
-(3 registros)
-
-  id   |   canonic_term   
--------+------------------
- 14246 | praxishochschule
- 31714 | sunnyvale
- 32488 | unitrabalho
-(3 registros)
-
-  id   | synonym_term 
--------+--------------
- 14062 | puc-sorocaba
- 14063 | pucsp
- 14064 | puc-sp
-(3 registros)
-
-  id   | synonym_term |                 term_canonic                  
--------+--------------+-----------------------------------------------
- 14062 | puc-sorocaba | pontifícia universidade católica de são paulo
- 14063 | pucsp        | pontifícia universidade católica de são paulo
- 14064 | puc-sp       | pontifícia universidade católica de são paulo
-(3 registros)
-
 ====== basic canonic name resolution:   =================================
-  id   | nsid | score | sc_type |           term            
--------+------+-------+---------+---------------------------
- 35407 |    4 |   100 | exact   | universidade de são paulo
+  id   | nsid |           term            | score | sc_type | is_canonic | fk_canonic 
+-------+------+---------------------------+-------+---------+------------+------------
+ 35407 |    4 | universidade de são paulo |   100 | exact   | f          |      35405
 (1 registro)
 
  qs_in_other_ns 
 ----------------
 (0 registro)
 
-                     n2c_tab                     
--------------------------------------------------
- (35407,4,100,exact,"universidade de são paulo")
+                         n2c_tab                         
+---------------------------------------------------------
+ (35407,4,"universidade de são paulo",100,exact,f,35405)
 (1 registro)
 
  qs_not_valid_name 
 -------------------
 (0 registro)
 
-                        a                        |                                   b                                    
--------------------------------------------------+------------------------------------------------------------------------
- (35407,4,100,exact,"universidade de são paulo") | (14017,4,100,exact,"pontifícia universidade católica de minas gerais")
+                            a                            |                                       b                                        
+---------------------------------------------------------+--------------------------------------------------------------------------------
+ (35407,4,"universidade de são paulo",100,exact,f,35405) | (14017,4,"pontifícia universidade católica de minas gerais",100,exact,f,13992)
 (1 registro)
 
-====== list synonyms:   =================================
-  id  | nsid | score | sc_type |                                              term                                               
-------+------+-------+---------+-------------------------------------------------------------------------------------------------
- 7350 |    4 |   100 | exact   | fucape
- 7351 |    8 |   100 | exact   | fundacao instituto capixaba de pesquisas em contabilidade , economia e financas business school
- 7352 |    8 |   100 | exact   | fundação instituto capixaba de pesquisas em contabilidade , economia e finanças business school
+====== list of synonyms:   =================================
+  id  | nsid |                                              term                                               | score | sc_type | is_canonic | fk_canonic 
+------+------+-------------------------------------------------------------------------------------------------+-------+---------+------------+------------
+ 7350 |    4 | fucape                                                                                          |   100 | exact   | f          |       7352
+ 7351 |    8 | fundacao instituto capixaba de pesquisas em contabilidade , economia e financas business school |   100 | exact   | f          |       7352
+ 7352 |    8 | fundação instituto capixaba de pesquisas em contabilidade , economia e finanças business school |   100 | exact   | t          |           
 (3 registros)
 
-  id   | nsid | score | sc_type |                                          term                                           
--------+------+-------+---------+-----------------------------------------------------------------------------------------
- 14015 |    4 |   100 | exact   | puc-betim
- 14016 |    4 |   100 | exact   | pucmg
- 14017 |    4 |   100 | exact   | puc-mg
- 14018 |    4 |   100 | exact   | puc-minas
- 14021 |    8 |   100 | exact   | pontifical catholic university of minas gerais , puc minas
- 14024 |    8 |   100 | exact   | pucmg , pontifical catholic university of minas gerais
- 13994 |   16 |   100 | exact   | pontifícia universidad católica de minas gerais , puc , mg , belo horizonte-mg , brasil
-(7 registros)
+  id   | nsid |                         term                          | score | sc_type | is_canonic | fk_canonic 
+-------+------+-------------------------------------------------------+-------+---------+------------+------------
+ 35408 |    8 | abcm university of são paulo                          |   100 | exact   | f          |      35405
+ 35411 |    8 | araraquara dental school , são paulo state university |   100 | exact   | f          |      35405
+ 35413 |   16 | bibliotecas de la universidad de são paulo            |   100 | exact   | f          |      35405
+ 35415 |    8 | cancer institute of the state of sao paulo , fmusp    |   100 | exact   | f          |      35405
+ 35417 |    8 | catholical university of são paulo                    |   100 | exact   | f          |      35405
+ 35416 |    8 | catholic university of são paulo                      |   100 | exact   | f          |      35405
+ 35424 |    8 | city of são paulo university                          |   100 | exact   | f          |      35405
+ 35428 |    4 | cusp                                                  |   100 | exact   | f          |      35405
+ 35436 |    8 | department of economics university of são paulo       |   100 | exact   | f          |      35405
+ 35437 |    8 | department of neurology of school of medicine of usp  |   100 | exact   | f          |      35405
+(10 registros)
 
 ====== Using JSON in name resolution and list of synonyms:   ==========
-                                                          n2c                                                           
-------------------------------------------------------------------------------------------------------------------------
- {"id": 14017, "nsid": 4, "term": "pontifícia universidade católica de minas gerais", "score": 100, "sc_type": "exact"}
+                                                                                                      n2c                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": [{"id": 14017, "nsid": 4, "term": "pontifícia universidade católica de minas gerais", "score": 100, "sc_type": "exact", "fk_canonic": 13992, "is_canonic": false}], "jsonrpc": " 2.0"}
 (1 registro)
 
- n2ns 
-------
- 
+                                                                                                                                                                                                                                                                                              n2ns                                                                                                                                                                                                                                                                                              
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": null, "result": [{"id": 7350, "nsid": 4, "term": "fucape", "score": 100, "sc_type": "exact", "fk_canonic": 7352, "is_canonic": false}, {"id": 7351, "nsid": 8, "term": "fundacao instituto capixaba de pesquisas em contabilidade , economia e financas business school", "score": 100, "sc_type": "exact", "fk_canonic": 7352, "is_canonic": false}, {"id": 7352, "nsid": 8, "term": "fundação instituto capixaba de pesquisas em contabilidade , economia e finanças business school", "score": 100, "sc_type": "exact", "fk_canonic": null, "is_canonic": true}], "jsonrpc": " 2.0"}
 (1 registro)
 
-                                    n2ns                                     
------------------------------------------------------------------------------
- {"id": 7350, "nsid": 4, "term": "fucape", "score": 100, "sc_type": "exact"}
+                      n2ns                       
+-------------------------------------------------
+ {"id": null, "result": null, "jsonrpc": " 2.0"}
+(1 registro)
+
+                                                                                                                          N2Ns array                                                                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": ["fucape", "fundacao instituto capixaba de pesquisas em contabilidade , economia e financas business school", "fundação instituto capixaba de pesquisas em contabilidade , economia e finanças business school"], "jsonrpc": " 2.0"}
 (1 registro)
 
 ====== END ===========

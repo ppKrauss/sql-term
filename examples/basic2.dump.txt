@@ -38,18 +38,88 @@
  14064 | puc-sp       | pontifícia universidade católica de são paulo
 (3 registros)
 
-====== 10 more frequent words (lexemes):   ========================
-    word     | ndoc  | nentry 
--------------+-------+--------
- municipal   | 15918 |  15918
- secret      | 10703 |  10703
- educ        |  5627 |   5630
- saúd        |  5461 |   5463
- prefeitur   |  5305 |   5305
- university  |  4176 |   4199
- of          |  2983 |   3189
- universidad |  2820 |   2872
- institut    |  2705 |   2717
- univers     |  2606 |   2674
+====== 10 top lexemes (more frequent words by its lexemes) of each namespace:   ===========
+   lexeme    | tot_ns | tot_ndoc | tot_entry 
+-------------+--------+----------+-----------
+ municipal   |      3 |    15918 |     15918
+ secret      |      2 |    10703 |     10703
+ educ        |      2 |     5627 |      5630
+ saúd        |      3 |     5461 |      5463
+ prefeitur   |      2 |     5305 |      5305
+ university  |      1 |     4176 |      4199
+ of          |      1 |     2983 |      3189
+ universidad |      2 |     2820 |      2872
+ institut    |      3 |     2705 |      2717
+ univers     |      3 |     2606 |      2674
 (10 registros)
+
+====== Some namespace parameterization options:   ==================
+ nsget_nsopt2int 
+-----------------
+              30
+(1 registro)
+
+ nsget_nsopt2int 
+-----------------
+               4
+(1 registro)
+
+ nsget_nsopt2int 
+-----------------
+                
+(1 registro)
+
+====== Behaviour of each search() variation:   ==================
+  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
+------+------+---------+-------+---------+------------+------------
+ 4580 |    4 | embrapa |   100 |         | t          |           
+(1 registro)
+
+  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
+------+------+---------+-------+---------+------------+------------
+ 4580 |    4 | embrapa |   100 |         | t          |           
+(1 registro)
+
+ id | nsid | term | score | sc_type | is_canonic | fk_canonic 
+----+------+------+-------+---------+------------+------------
+(0 registro)
+
+  id  | nsid |     term      | score | sc_type | is_canonic | fk_canonic 
+------+------+---------------+-------+---------+------------+------------
+ 4616 |    4 | iiiembrapa    |    54 |         | f          |       4580
+ 4615 |    4 | iiembrapa     |    64 |         | f          |       4580
+ 4614 |    4 | iica-embrapa  |    41 |         | f          |       4580
+ 4612 |    4 | iembrapa      |    78 |         | f          |       4580
+ 4914 |    4 | embrapa-uepae |    37 |         | f          |       4911
+(5 registros)
+
+ count 
+-------
+    54
+(1 registro)
+
+ count 
+-------
+   456
+(1 registro)
+
+ count 
+-------
+    47
+(1 registro)
+
+ count 
+-------
+   364
+(1 registro)
+
+ count 
+-------
+     0
+(1 registro)
+
+ count 
+-------
+   391
+(1 registro)
 
