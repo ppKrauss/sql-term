@@ -96,7 +96,15 @@ LIMIT 10;
 \qecho '====== Using JSON in name resolution and list of synonyms:   =========='
 SELECT term1.N2C('{"id":123,"params":{"qs":"puc-mg","ns":"wayta-code","qs_is_normalized":true}}'::jsonb);
 
+SELECT term1.N2Ns('{"qs":"fucape","ns":"wayta-code","qs_is_normalized":true}'::jsonb);
+SELECT term1.N2Ns('{"qs":"xxfucape","ns":"wayta-code","qs_is_normalized":true}'::jsonb);
+
 SELECT term1.N2Ns('{"id":123,"qs":"fucape","ns":"wayta-code","qs_is_normalized":true,"otype":"a"}'::jsonb) as "N2Ns array";
+
+
+
+
+
 
 
 \qecho '====== END ==========='
