@@ -7,6 +7,8 @@
 -- Copyright by ppkrauss@gmail.com 2016, MIT license.
 --
 
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch; -- for metaphone() and levenshtein()
+
 DROP SCHEMA IF EXISTS term_lib CASCADE;
 
 CREATE SCHEMA term_lib; -- independent lib for all Term schemas.
@@ -284,7 +286,6 @@ $f$ LANGUAGE SQL IMMUTABLE;
 
 
 DROP SCHEMA IF EXISTS term1 CASCADE; 
-CREATE EXTENSION IF NOT EXISTS fuzzystrmatch; -- for metaphone() and levenshtein()
 
 CREATE SCHEMA term1; -- modeling by Term-0 Requirements
 
