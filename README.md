@@ -46,13 +46,24 @@ For searching and resolving, use a base-namespace as target and adopt its mask w
 
 ## Fast Guide
 
-Use of SQL functions. For function description, see 
+Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [ini1.sql](src/ini1.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/basic2.sql) (b2).
 
-* `term_lib` functions:
-   * ....
-* `term1` functions:
-   * `term1.search2c()`
-   * ...
+
+* `term1`:
+   * Main functions:
+      * `n2c()`: normal to canonic, retrieves de canonic term from a valid term of a namespace. See b1.
+      * `n2ns()`: normal to normals, retrieves de all synonyms of a valid term (of a namespace). See b1.
+      * `search_tab()`: search by terms with specified option, returning nearst (similar) terms. See b2.
+      * `search2c()`: as `search_tab()` but reducing to only corresponding canonical terms. See b2.
+      * `find()`: complete algorithm to "best search choice"...
+      * `find2c()`: ...
+   * Utilities:
+      * `term1.basemask()` see b1.
+      * `nsget_nsopt2int()` see b2.
+* `term_lib`, main functions: 
+   * `term_lib.normalizeterm()`: see b1. 
+   * `term_lib.score()`: see b1.
+   * `term_lib.score_pairs()`: see b1.
 
 ## NOTES
 
@@ -66,7 +77,7 @@ Use of SQL functions. For function description, see
 
 ### Context and concepts
 
-* ... [Controlled terminologies](https://www.wikidata.org/wiki/Q1469824) ...
+* ... [Controlled terminologies](https://www.wikidata.org/wiki/Q1469824) ... [Named-entity recognition](https://en.wikipedia.org/wiki/Named-entity_recognition), ...  URNs, URN-resolution (ex. [ISSN-L resolution](https://github.com/okfn-brasil/ISSN-L-Resolver)) and operators N2C, N2Ns, etc.
 
 * ... lexemes ...  this project is illustring use of [português brasileiro](https://www.wikidata.org/wiki/Q750553)... 
 
