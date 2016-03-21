@@ -64,10 +64,28 @@ select count(*) from term1.search_tab('{"op":"p","qs":"embiripo","ns_basemask":"
 select count(*) from term1.search_tab('{"op":"&","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
 select count(*) from term1.search_tab('{"op":"&","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
 
-\qecho '====== Using search() to illustrate complete JSON i/o   ===='
+\qecho '====== Behaviour of each search2c_tab(), search-to-canonic variations:   =='
+select * from term1.search_tab('{"op":"=","qs":"usp","ns":"wayta-code","metaphone":true}'::jsonb); -- "with Metaphone"
+select * from term1.search2c_tab('{"op":"=","qs":"usp","ns":"wayta-code","metaphone":true}'::jsonb); -- "Metaphones to canonic";
+
+select * from term1.search2c_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb); 
+
+select * from term1.search2c_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb); 
+select count(*) from term1.search2c_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+select count(*) from term1.search2c_tab('{"op":"%","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
+
+select count(*) from term1.search2c_tab('{"op":"p","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+
+select count(*) from term1.search2c_tab('{"op":"&","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
+
+
+\qecho '====== Using search() and to search2c() illustrate complete JSON i/o   ===='  
 select term1.search('{"id":123,"op":"=","qs":"embrapa","ns":"wayta-code","lim":1,"otype":"l"}'::jsonb); 
 select term1.search('{"id":123,"op":"p","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
 select term1.search('{"id":123,"op":"&","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
+
+select term1.search2c('{"id":123,"op":"%","qs":"usspi","ns":"wayta-code","lim":5,"metaphone":true,"otype":"o"}'::jsonb);
+select term1.search2c('{"id":123,"op":"%","qs":"usspi","ns":"wayta-code","lim":5,"metaphone":false,"otype":"o"}'::jsonb);
 
 -- term_lib.score_pairs
 
