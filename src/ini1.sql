@@ -56,6 +56,19 @@ CREATE TABLE term1.term(
   -- see also input_term() trigger.
 );
 
+CREATE TYPE term1.tab AS  (
+	--
+	-- Used as internal standard for data interchange and data reporting. 
+	--
+	id int, 
+	nsid int, 
+	term text, 
+	score int, 
+	is_canonic boolean, 
+	fk_canonic int,
+	jetc JSONB  -- 	sc_func, synonyms_count, etc.
+);
+
 CREATE INDEX term_idx ON term1.term(term); -- need after unique?
 CREATE INDEX term_metaphone_idx ON term1.term(kx_metaphone);
 
@@ -138,16 +151,13 @@ CREATE FUNCTION term1.nsget_conf(text) RETURNS regconfig AS $f$
 	SELECT kx_regconf FROM term1.ns WHERE label=$1;
 $f$ LANGUAGE SQL IMMUTABLE;
 
-
-
-
 CREATE FUNCTION term1.set_regconf(anyelement,text) RETURNS regconfig AS $f$  --revisar usabilidade do anyelement
 	SELECT  COALESCE( term1.nsget_conf($1), term_lib.lang2regconf($2) );
 $f$ LANGUAGE SQL IMMUTABLE;
 
 -- -- -- 
 
-CREATE or replace FUNCTION term1.nsget_nsopt2int(JSONB) RETURNS int AS $f$
+CREATE FUNCTION term1.nsget_nsopt2int(JSONB) RETURNS int AS $f$
 	--
 	-- Parses the namespace-setter optional parameters. 'ns', 'ns_mask', 'ns_basemask', 'ns_label', 'ns_count'
 	--
@@ -177,11 +187,9 @@ CREATE or replace FUNCTION term1.nsget_nsopt2int(JSONB) RETURNS int AS $f$
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
--- AQUI PAREI!
-
-CREATE or replace FUNCTION term1.search(
+CREATE FUNCTION term1.search(
 	-- Wrap for JSONB and outputs as RPC. Se #SQL-TEMPLATE of term1.N2C().
-	-- SELECT * FROM term1.search('{"op":"%","qs":"embrapa","ns":"wayta-code","lim":5,"otype":"a"}'::jsonb);
+	-- SELECT term1.search('{"op":"%","qs":"embrapa","ns":"wayta-code","lim":5,"otype":"a"}'::jsonb);
 	JSONB  -- see all valid params
 ) RETURNS JSONB AS $f$
 DECLARE
@@ -215,11 +223,9 @@ $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
 
+
 -- -- -- -- -- -- -- 
 -- TERM1 TERM-RESOLVERS:
-
--- old CREATE TYPE term1.tab AS (id int, nsid int, score int, sc_type text, term text);
-CREATE TYPE term1.tab AS  (id int, nsid int, term text, score int, sc_type text, is_canonic boolean, fk_canonic int);
 
 CREATE FUNCTION term1.N2C_tab(
 	-- 
@@ -231,7 +237,7 @@ CREATE FUNCTION term1.N2C_tab(
 	int,     		-- 2. namespace MASK, ex. by term1.basemask().
 	boolean DEFAULT true  	-- 3. exact (true) or apply normalization (false)
 ) RETURNS SETOF term1.tab  AS $f$
-	SELECT id, fk_ns as nsid, term_canonic::text, 100::int, 'exact'::text, is_canonic, fk_canonic
+	SELECT id, fk_ns as nsid, term_canonic::text, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
 	FROM term1.term_full 
 	WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $3 THEN term=$1 ELSE term=term_lib.normalizeterm($1) END 
 $f$ LANGUAGE SQL IMMUTABLE;
@@ -288,7 +294,7 @@ CREATE FUNCTION term1.N2Ns_tab(
 	boolean DEFAULT true	-- 4. (non-used, enforcing sort) to sort by ns, term
 ) RETURNS SETOF term1.tab AS $f$
    -- TO DO: optimize (see explain) and simplify using term1.term_full 
-   SELECT t.id, t.fk_ns as nsid, t.term, 100::int, 'exact'::text, is_canonic, fk_canonic
+   SELECT t.id, t.fk_ns as nsid, t.term, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
    FROM term1.term t  INNER JOIN   (
 	SELECT CASE WHEN is_canonic THEN -- caso comum, mais de 60% sao canonicos
 			s.id 
@@ -359,6 +365,7 @@ DECLARE
 	p_lim bigint;
 	p_mlen int;
 	p_conf regconfig;
+	jetc jsonb;
 BEGIN
 	p := jsonb_build_object( -- all default values
 		'op','=', 'lim',5, 'etc',1, 'scfunc','dft', 'sc_maxd',100, 'metaphone',false, 'metaphone_len',6, 
@@ -374,19 +381,20 @@ BEGIN
 	END IF;
 	p_nsmask:= term1.nsget_nsopt2int(p);
 	p_scfunc := p->>'sc_func';
+	jetc   :=   p->'sc_func';   -- || other
 	p_maxd :=   p->>'sc_maxd';  -- ::int
 	p_lim  :=   p->>'lim';
 	IF p->>'metaphone' THEN
 		p_mlen := (p->>'metaphone_len')::int;
 		CASE p->>'op'
 		WHEN 'e','=' THEN  		-- exact
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.kx_metaphone = term_lib.multimetaphone(p_qs,p_mlen,' ')
 			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		WHEN '%','p','s' THEN 	 	-- s'equence OR p'refix
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.kx_metaphone LIKE (
 				CASE WHEN p->>'op'='p' THEN '' ELSE '%' END || term_lib.multimetaphone(p_qs,p_mlen,'%') || '%'
@@ -394,7 +402,7 @@ BEGIN
 			ORDER BY 4 DESC, 3			
 			LIMIT p_lim;
 		ELSE  				-- pending, needs also "free tsquery" in $2 for '!' use and complex expressions
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND to_tsvector('simple',t.kx_metaphone) @@ to_tsquery(
 				'simple',
@@ -407,13 +415,13 @@ BEGIN
 	ELSE CASE p->>'op'    			-- DIRECT TERMS:
  
 		WHEN 'e', '=' THEN  		-- exact
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.term = p_qs
 			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		WHEN '%', 'p', 's' THEN  	-- 's'equence or 'p'refix
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND t.term LIKE (
 				CASE WHEN  p->>'op'='p' THEN '' ELSE '%' END || replace(p_qs, ' ', '%')  || '%'
@@ -421,7 +429,7 @@ BEGIN
 			ORDER BY 4 DESC, 3
 			LIMIT p_lim;
 		ELSE				-- '&', '|', etc. resolved by tsquery.
-			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), p_scfunc, t.is_canonic, t.fk_canonic
+			RETURN QUERY SELECT t.id, t.fk_ns, t.term::text, term_lib.score(p_qs, t.term,p_scfunc, p_maxd), t.is_canonic, t.fk_canonic, jetc
 			FROM term1.term_ns t
 			WHERE (t.fk_ns&p_nsmask)::boolean AND kx_tsvector @@ to_tsquery(   -- not optimized
 				kx_regconf,  replace(p_qs,' ',p->>'op')
@@ -436,20 +444,22 @@ BEGIN
 	--  * "free tsquery" in  p->>'op', for '!' and other complex qsquery expressions.
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
--- aqui serch
 
----
+--- REVISAR a partir daaqui...
 
 CREATE FUNCTION term1.search2c_tab(
 	--
 	-- term1.search_tab() complement, to reduce the output to only canonic forms.
 	--
 	JSONB -- 1. all input parameters. 
-) RETURNS TABLE(id int, term varchar, score int) AS $f$
-	SELECT 	max( COALESCE(s.fk_canonic,s.id) ) AS cid,   -- the s.id is the canonic when c.term is null
-		COALESCE(c.term,s.term) AS cterm,           -- the s.term is the canonic when c.term is null
-		max(s.score) as score,
-		count(*) as n_synonyms
+) RETURNS term1.tab AS $f$
+	SELECT 	max( COALESCE(s.fk_canonic,s.id) ) AS cid, -- the s.id is the canonic when c.term is null
+		max(s.nsid) as nsid,        		-- certo é array_agg(distinct s.fk_ns)
+		COALESCE(c.term,s.term) AS cterm, 	-- the s.term is the canonic when c.term is null
+		max(s.score) as score,  	-- or first_value()
+		true::boolean as is_canonic, 	-- all are canonic
+		NULL::int as fk_canonic,  	-- all are null
+		jsonb_build_object( 'sc_func',max(s.jetc->>'sc_func'), 'synonyms_count', count(*) )
 	FROM term1.search_tab($1) s LEFT JOIN term1.term_canonic c ON c.id=s.fk_canonic
 	GROUP BY cterm
 	ORDER BY score DESC, cterm;
@@ -475,8 +485,7 @@ BEGIN
 		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
 		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
 		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
-		END
-	INTO r
+		END INTO r
 	FROM term1.search2c_tab(p) t;
 	
 	RETURN 	 r;

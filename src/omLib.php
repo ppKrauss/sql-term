@@ -14,7 +14,7 @@
 	// CONFIGS: (by include secure/configs.php)
 
 	$PG_USER = 'postgres';
-	$PG_PW   = 'xxxxx';
+	$PG_PW   = 'pp@123456';
 	$dsn="pgsql:dbname=postgres;host=localhost";
 	$degVers =1; //may be overhide by request
 	$cmd = ''; // method

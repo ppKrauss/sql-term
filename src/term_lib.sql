@@ -97,8 +97,29 @@ CREATE FUNCTION term_lib.jrpc_ret(
 		);
 $f$ LANGUAGE SQL IMMUTABLE;
 
--- Verify if a function can work for issue https://github.com/ppKrauss/sql-term/issues/5
--- adding the strutucture to result.
+
+CREATE FUNCTION term_lib.jrpc_ret(
+	--
+	-- Adds standard term_lib structure to RPC result.
+	-- See https://github.com/ppKrauss/sql-term/issues/5
+	--
+	JSON,      		-- 1. full result (all items) before to pack
+	int,       		-- 2. items COUNT of the full result 
+	text DEFAULT NULL, 	-- 3. id of callback
+	text DEFAULT NULL, 	-- 4. sc_func 
+	JSONB DEFAULT NULL      -- 5. json with sc_func and other data, instead of 4.
+) RETURNS JSONB AS $f$
+	SELECT jsonb_build_object(
+		'result', CASE 
+			WHEN $4 IS NULL THEN jsonb_build_object('items',$1, 'count',$2)
+			WHEN $5 IS NULL THEN jsonb_build_object('items',$1, 'count',$2, 'sc_func',$4)
+			ELSE jsonb_build_object('items',$1, 'count',$2) || $5
+			END,
+		'id',$3,
+		'jsonrpc',' 2.0'
+	);
+$f$ LANGUAGE SQL IMMUTABLE;
+
 
 -- -- -- -- -- -- -- --
 --- PUBLIC FUNCTIONS
@@ -140,9 +161,11 @@ $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION term_lib.score(
 	-- 
-	-- Levenshtein comparison score functions. Compare 2 normalized terms. NOT USEFUL, NOT OPTIMIZED (if more 1 need a C library).
-	-- Caution: when using low p_maxd, long strings 
-	--
+	-- Define all score functions (sc_func labels). 
+	-- Compare, typically by Levenshtein score functions, 2 normalized terms. 
+	-- Not so useful and NOT OPTIMIZED (ideal is C library).
+	-- Main functions: 'levdiffpercp' as 'std' and 'levdiffperc'.
+	-- NOTES: Caution in 'std', when using low p_maxd, long strings. 
 	-- Ex. SELECT term_lib.score('foo','foo') as eq, term_lib.score('foo','floor') as similar, term_lib.score('foo','bar') as dif;
 	-- 
 	text,                   	-- 1. input string
@@ -181,7 +204,7 @@ $f$ LANGUAGE PLpgSQL IMMUTABLE;
 CREATE or replace FUNCTION term_lib.score(
 	-- Ex. SELECT term_lib.score('{"a":"foo","b":"fox","sc_maxd":3}'::jsonb)
 	JSONB			-- all parameters
-) RETURNS int AS $f$  
+) RETURNS int AS $f$
 	-- wrap function
 	WITH j AS( SELECT term_lib.jparams($1, '{"sc_func":"std","sc_maxd":100}'::jsonb) AS p )
 	SELECT term_lib.score(j.p->>'a',j.p->>'b',j.p->>'sc_func', (j.p->>'sc_maxd')::int) FROM j;
@@ -201,7 +224,7 @@ $f$ LANGUAGE SQL IMMUTABLE;
 --- --- ---
 -- Scoring pairs functions:
 
-CREATE TYPE term_lib.tab AS (score int, sc_type text, term text);
+CREATE TYPE term_lib.tab AS (score int, sc_func text, term text);
 
 CREATE FUNCTION term_lib.score_pairs_tab(
 	-- 
