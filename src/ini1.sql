@@ -213,15 +213,13 @@ BEGIN
 				ELSE 		jsonb_agg(to_jsonb(t))
 			END,
 			'count', count(*),
-			'sc_func',max(t.sc_type)
+			'sc_func',max(t.jetc->>'sc_func')
 			)  INTO r
 		FROM term1.search_tab(p) t;
 	END IF;
 	RETURN 	 term_lib.jrpc_ret(r,($1->>'id')::text);
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
-
-
 
 
 -- -- -- -- -- -- -- 
@@ -351,7 +349,7 @@ CREATE or replace FUNCTION term1.search_tab(
 	--  Executes all search forms, by similar terms, and all output modes provided for the system.
 	--  Debug with 'search-json'
 	--  Namespace: use scalar for ready mask, or array of nscount for build mask. 
-	--  @DEFAULT-PARAMS "op": "=", "lim": 5, "scfunc": "dft", "metaphone": false, "sc_maxd": 100, "metaphone_len": 6, ...
+	--  @DEFAULT-PARAMS "op": "=", "lim": 5, "sc_func": "dft", "metaphone": false, "sc_maxd": 100, "metaphone_len": 6, ...
 	--
 	JSONB -- 1. all input parameters. 
 ) RETURNS SETOF term1.tab AS $f$ 
@@ -368,7 +366,7 @@ DECLARE
 	jetc jsonb;
 BEGIN
 	p := jsonb_build_object( -- all default values
-		'op','=', 'lim',5, 'etc',1, 'scfunc','dft', 'sc_maxd',100, 'metaphone',false, 'metaphone_len',6, 
+		'op','=', 'lim',5, 'etc',1, 'sc_func','dft', 'sc_maxd',100, 'metaphone',false, 'metaphone_len',6, 
 		'qs_lang','pt', 'nsmask',255, 
 		'debug',null 
 	) || CASE WHEN $1->'params' IS NOT NULL THEN $1->'params' ELSE $1 END;
@@ -381,7 +379,7 @@ BEGIN
 	END IF;
 	p_nsmask:= term1.nsget_nsopt2int(p);
 	p_scfunc := p->>'sc_func';
-	jetc   :=   p->'sc_func';   -- || other
+	jetc   :=   jsonb_build_object('sc_func', p->>'sc_func');   -- || other
 	p_maxd :=   p->>'sc_maxd';  -- ::int
 	p_lim  :=   p->>'lim';
 	IF p->>'metaphone' THEN
@@ -445,9 +443,7 @@ BEGIN
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
---- REVISAR a partir daaqui...
-
-CREATE FUNCTION term1.search2c_tab(
+CREATE or replace FUNCTION term1.search2c_tab(
 	--
 	-- term1.search_tab() complement, to reduce the output to only canonic forms.
 	--
@@ -460,8 +456,10 @@ CREATE FUNCTION term1.search2c_tab(
 		true::boolean as is_canonic, 	-- all are canonic
 		NULL::int as fk_canonic,  	-- all are null
 		jsonb_build_object( 'sc_func',max(s.jetc->>'sc_func'), 'synonyms_count', count(*) )
-	FROM term1.search_tab($1) s LEFT JOIN term1.term_canonic c ON c.id=s.fk_canonic
+	FROM term1.search_tab($1) s LEFT JOIN term1.term_canonic c ON c.id=s.fk_canonic  -- certo  é RIGHT!
+	WHERE c.id IS NOT NULL 
 	GROUP BY cterm
+	HAVING max(s.nsid)>0
 	ORDER BY score DESC, cterm;
 $f$ LANGUAGE SQL IMMUTABLE;
 
@@ -481,19 +479,18 @@ BEGIN
 	);
 	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
 	
-	SELECT CASE p->>'otype'
-		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
-		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
-		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
-		END INTO r
+	SELECT CASE WHEN max(id) IS NULL THEN term_lib.jrpc_error('nenhum termo encontrado',1,p_id) 
+	       ELSE CASE p->>'otype'
+		 WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
+		 WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
+		 ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
+		 END 
+	       END INTO r
 	FROM term1.search2c_tab(p) t;
 	
-	RETURN 	 r;
+	RETURN 	CASE WHEN r IS NULL THEN term_lib.jrpc_error('qs não-encontrada',-1,p_id) ELSE  r END;
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
-
-
---- REVIANDI
 
 
 CREATE or replace FUNCTION term1.find_tab(

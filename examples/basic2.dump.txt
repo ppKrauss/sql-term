@@ -3,54 +3,54 @@
 =================================================================
 
 ====== Terms, some samples and info retrieval:   ========================
-  id   | fk_ns |       term       | fk_canonic | is_canonic | is_cult |  created   |                                                                         jinfo                                                                         | kx_metaphone |     kx_tsvector     
--------+-------+------------------+------------+------------+---------+------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+--------------+---------------------
- 14246 |     4 | praxishochschule |            | t          |         | 2016-03-13 | {"city": "Köln", "form": "praxisHochschule", "iso2": "DE", "state": "Nordrhein-Westfalen", "source": "data/normalized_aff.csv", "country": "Germany"} | PRKSXX       | 'praxishochschul':1
- 31714 |     4 | sunnyvale        |            | t          |         | 2016-03-13 | {"city": "Sunnyvale", "form": "Sunnyvale", "iso2": "US", "state": "California", "source": "data/normalized_aff.csv", "country": "USA"}                | SNFL         | 'sunnyval':1
- 32488 |     4 | unitrabalho      |            | t          |         | 2016-03-13 | {"city": "", "form": "Unitrabalho", "iso2": "BR", "state": "", "source": "data/normalized_aff.csv", "country": "Brazil"}                              | UNTRBL       | 'unitrabalh':1
+  id   | fk_ns |             term             | fk_canonic | is_canonic | is_cult | is_suspect |  created   |                                                                  jinfo                                                                  |  kx_metaphone   |                         kx_tsvector                         
+-------+-------+------------------------------+------------+------------+---------+------------+------------+-----------------------------------------------------------------------------------------------------------------------------------------+-----------------+-------------------------------------------------------------
+ 40053 |     2 | université aix-marseille 3   |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS   | '3':5 'aix':3 'aix-marseill':2 'marseill':4 'universit':1
+ 40054 |     2 | université aix-marseille i   |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS I | 'aix':3 'aix-marseill':2 'i':5 'marseill':4 'universit':1
+ 40055 |     2 | université aix-marseille iii |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS I | 'aix':3 'aix-marseill':2 'iii':5 'marseill':4 'universit':1
 (3 registros)
 
-  id   |       term       |   label    | is_base 
--------+------------------+------------+---------
- 14246 | praxishochschule | wayta-code | f
- 31714 | sunnyvale        | wayta-code | f
- 32488 | unitrabalho      | wayta-code | f
+  id   |             term             |  label   | is_base 
+-------+------------------------------+----------+---------
+ 40053 | université aix-marseille 3   | wayta-pt | t
+ 40054 | université aix-marseille i   | wayta-pt | t
+ 40055 | université aix-marseille iii | wayta-pt | t
 (3 registros)
 
   id   |   canonic_term   
 -------+------------------
  14246 | praxishochschule
+ 31251 | simcenter
  31714 | sunnyvale
- 32488 | unitrabalho
 (3 registros)
 
-  id   | synonym_term 
--------+--------------
- 14062 | puc-sorocaba
- 14063 | pucsp
- 14064 | puc-sp
+  id   |         synonym_term         
+-------+------------------------------
+ 40053 | université aix-marseille 3
+ 40054 | université aix-marseille i
+ 40055 | université aix-marseille iii
 (3 registros)
 
-  id   | synonym_term |                 term_canonic                  
--------+--------------+-----------------------------------------------
- 14062 | puc-sorocaba | pontifícia universidade católica de são paulo
- 14063 | pucsp        | pontifícia universidade católica de são paulo
- 14064 | puc-sp       | pontifícia universidade católica de são paulo
+  id   |         synonym_term         |        term_canonic        
+-------+------------------------------+----------------------------
+ 40053 | université aix-marseille 3   | université d'aix-marseille
+ 40054 | université aix-marseille i   | université d'aix-marseille
+ 40055 | université aix-marseille iii | université d'aix-marseille
 (3 registros)
 
 ====== 10 top lexemes (more frequent words by its lexemes) of each namespace:   ===========
-   lexeme    | tot_ns | tot_ndoc | tot_entry 
--------------+--------+----------+-----------
- municipal   |      3 |    15918 |     15918
- secret      |      2 |    10703 |     10703
- educ        |      2 |     5627 |      5630
- saúd        |      3 |     5461 |      5463
- prefeitur   |      2 |     5305 |      5305
- university  |      1 |     4176 |      4199
- of          |      1 |     2983 |      3189
- universidad |      2 |     2820 |      2872
- institut    |      3 |     2705 |      2717
- univers     |      3 |     2606 |      2674
+  lexeme   | tot_ns | tot_ndoc | tot_entry 
+-----------+--------+----------+-----------
+ municipal |      2 |    15915 |     15915
+ secret    |      2 |    10702 |     10702
+ univers   |      3 |     9550 |      9690
+ educ      |      3 |     5898 |      5901
+ saúd      |      2 |     5460 |      5462
+ prefeitur |      2 |     5305 |      5305
+ institut  |      3 |     2703 |      2714
+ colleg    |      2 |     2574 |      2576
+ federal   |      2 |     1823 |      1856
+ faculdad  |      2 |     1395 |      1395
 (10 registros)
 
 ====== Some namespace parameterization options:   ===============
@@ -70,27 +70,27 @@
 (1 registro)
 
 ====== Behaviour of each search_tab() variation:   ==================
-  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
-------+------+---------+-------+---------+------------+------------
- 4580 |    4 | embrapa |   100 |         | t          |           
+  id  | nsid |  term   | score | is_canonic | fk_canonic |        jetc        
+------+------+---------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa |   100 | t          |            | {"sc_func": "dft"}
 (1 registro)
 
-  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
-------+------+---------+-------+---------+------------+------------
- 4580 |    4 | embrapa |   100 |         | t          |           
+  id  | nsid |  term   | score | is_canonic | fk_canonic |        jetc        
+------+------+---------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa |   100 | t          |            | {"sc_func": "dft"}
 (1 registro)
 
- id | nsid | term | score | sc_type | is_canonic | fk_canonic 
-----+------+------+-------+---------+------------+------------
+ id | nsid | term | score | is_canonic | fk_canonic | jetc 
+----+------+------+-------+------------+------------+------
 (0 registro)
 
-  id  | nsid |    term    | score | sc_type | is_canonic | fk_canonic 
-------+------+------------+-------+---------+------------+------------
- 4580 |    4 | embrapa    |   100 |         | t          |           
- 4612 |    4 | iembrapa   |    78 |         | f          |       4580
- 4615 |    4 | iiembrapa  |    64 |         | f          |       4580
- 4592 |    4 | embrapa-rj |    54 |         | f          |       4580
- 4616 |    4 | iiiembrapa |    54 |         | f          |       4580
+  id  | nsid |    term    | score | is_canonic | fk_canonic |        jetc        
+------+------+------------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa    |   100 | t          |            | {"sc_func": "dft"}
+ 4612 |    4 | iembrapa   |    78 | f          |       4580 | {"sc_func": "dft"}
+ 4615 |    4 | iiembrapa  |    64 | f          |       4580 | {"sc_func": "dft"}
+ 4592 |    4 | embrapa-rj |    54 | f          |       4580 | {"sc_func": "dft"}
+ 4616 |    4 | iiiembrapa |    54 | f          |       4580 | {"sc_func": "dft"}
 (5 registros)
 
  count 
@@ -115,36 +115,36 @@
 
  count 
 -------
-     1
+    50
 (1 registro)
 
  count 
 -------
-   392
+   443
 (1 registro)
 
 ====== Behaviour of each search_tab() on Metaphone variations:   ====
-  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
-------+------+---------+-------+---------+------------+------------
- 4580 |    4 | embrapa |    56 |         | t          |           
+  id  | nsid |  term   | score | is_canonic | fk_canonic |        jetc        
+------+------+---------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa |    56 | t          |            | {"sc_func": "dft"}
 (1 registro)
 
- id | nsid | term | score | sc_type | is_canonic | fk_canonic 
-----+------+------+-------+---------+------------+------------
+ id | nsid | term | score | is_canonic | fk_canonic | jetc 
+----+------+------+-------+------------+------------+------
 (0 registro)
 
-  id  | nsid |  term   | score | sc_type | is_canonic | fk_canonic 
-------+------+---------+-------+---------+------------+------------
- 4580 |    4 | embrapa |    45 |         | t          |           
+  id  | nsid |  term   | score | is_canonic | fk_canonic |        jetc        
+------+------+---------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa |    45 | t          |            | {"sc_func": "dft"}
 (1 registro)
 
-  id  | nsid |     term      | score | sc_type | is_canonic | fk_canonic 
-------+------+---------------+-------+---------+------------+------------
- 4580 |    4 | embrapa       |    45 |         | t          |           
- 5052 |    4 | embrapa-trigo |    30 |         | f          |       5045
- 4675 |    4 | embrapa-cpao  |    26 |         | f          |       4678
- 4998 |    4 | embrapa-soja  |    26 |         | f          |       4992
- 4592 |    4 | embrapa-rj    |    25 |         | f          |       4580
+  id  | nsid |     term      | score | is_canonic | fk_canonic |        jetc        
+------+------+---------------+-------+------------+------------+--------------------
+ 4580 |    4 | embrapa       |    45 | t          |            | {"sc_func": "dft"}
+ 5052 |    4 | embrapa-trigo |    30 | f          |       5045 | {"sc_func": "dft"}
+ 4675 |    4 | embrapa-cpao  |    26 | f          |       4678 | {"sc_func": "dft"}
+ 4998 |    4 | embrapa-soja  |    26 | f          |       4992 | {"sc_func": "dft"}
+ 4592 |    4 | embrapa-rj    |    25 | f          |       4580 | {"sc_func": "dft"}
 (5 registros)
 
  count 
@@ -177,19 +177,72 @@
    310
 (1 registro)
 
-====== Using search() to illustrate complete JSON i/o   ====
-                                                                             search                                                                              
------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": "123", "result": [{"id": 4580, "nsid": 4, "term": "embrapa", "score": 100, "sc_type": null, "fk_canonic": null, "is_canonic": true}], "jsonrpc": " 2.0"}
+====== Behaviour of each search2c_tab(), search-to-canonic variations:   ==
+  id   | nsid |  term  | score | is_canonic | fk_canonic |        jetc        
+-------+------+--------+-------+------------+------------+--------------------
+ 35407 |    4 | usp    |   100 | f          |      35405 | {"sc_func": "dft"}
+ 35670 |    4 | u.s.p  |    43 | f          |      35405 | {"sc_func": "dft"}
+ 35671 |    4 | u.s.p. |    33 | f          |      35405 | {"sc_func": "dft"}
+(3 registros)
+
+  id   | nsid |           term            | score | is_canonic | fk_canonic |                  jetc                   
+-------+------+---------------------------+-------+------------+------------+-----------------------------------------
+ 35405 |    4 | universidade de são paulo |   100 | t          |            | {"sc_func": "dft", "synonyms_count": 3}
 (1 registro)
 
-                                       search                                       
-------------------------------------------------------------------------------------
- {"id": "123", "result": {"embrapa": "100", "embrapa-rj": "54"}, "jsonrpc": " 2.0"}
+ id | nsid | term | score | is_canonic | fk_canonic | jetc 
+----+------+------+-------+------------+------------+------
+    |      |      |       |            |            | 
 (1 registro)
 
-                             search                             
-----------------------------------------------------------------
- {"id": "123", "result": {"embrapa": "100"}, "jsonrpc": " 2.0"}
+  id  | nsid |     term      | score | is_canonic | fk_canonic |                  jetc                   
+------+------+---------------+-------+------------+------------+-----------------------------------------
+ 5045 |    4 | embrapa trigo |    30 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
+(1 registro)
+
+ count 
+-------
+     1
+(1 registro)
+
+ count 
+-------
+     1
+(1 registro)
+
+ count 
+-------
+     1
+(1 registro)
+
+ count 
+-------
+     1
+(1 registro)
+
+====== Using search() and to search2c() illustrate complete JSON i/o   ====
+                                                                                  search                                                                                   
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": [{"id": 4580, "jetc": {"sc_func": "dft"}, "nsid": 4, "term": "embrapa", "score": 100, "fk_canonic": null, "is_canonic": true}], "jsonrpc": "2.0"}
+(1 registro)
+
+                                                           search                                                           
+----------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_func": "dft"}, "jsonrpc": "2.0"}
+(1 registro)
+
+                                                           search                                                           
+----------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_func": "dft"}, "jsonrpc": "2.0"}
+(1 registro)
+
+                                    search2c                                     
+---------------------------------------------------------------------------------
+ {"id": "123", "result": {"universidade de são paulo": "43"}, "jsonrpc": " 2.0"}
+(1 registro)
+
+                                          search2c                                           
+---------------------------------------------------------------------------------------------
+ {"id": "123", "error": {"code": 1, "message": "nenhum termo encontrado"}, "jsonrpc": "2.0"}
 (1 registro)
 

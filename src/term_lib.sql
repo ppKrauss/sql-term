@@ -180,6 +180,7 @@ CREATE FUNCTION term_lib.score(
 		cklong boolean;
 	BEGIN
 		cklong := (right(p_label,5)='-long');
+		-- IF p_label !='exact' THEN:
 		rlev  := CASE 
 			WHEN p_maxd IS NULL AND cklong THEN levenshtein($1,$2,2,1,1) -- score penalty for longer strings 
 			WHEN p_maxd IS NULL THEN levenshtein($1,$2,1,1,1)
@@ -195,6 +196,7 @@ CREATE FUNCTION term_lib.score(
 			WHEN 'lev500perc','lev500perc-long' 	THEN RETURN ((500.0 - rlev)/glen); -- bigger is better
 			WHEN 'lev500percp','lev500percp-long' 	THEN RETURN ((500.0 - rlev)/(glen+rlev)); -- bigger			
 			WHEN 'levdiffperc','levdiffperc-long'   THEN RETURN (100.0*(glen-rlev) / glen);  -- bigger is better
+			WHEN 'exact','exact-long' THEN RETURN CASE WHEN $1=$2 THEN 100 ELSE 0 END;  -- bigger is better
 			ELSE RETURN 100.0*(glen-rlev) / (glen+rlev); -- '6','levdiffpercp' -- bigger is better
 		END CASE;
 	END;

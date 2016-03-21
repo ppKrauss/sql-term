@@ -26,7 +26,7 @@ SELECT * FROM term_lib.score_pairs_tab('foo',array['fox']);
 WITH word AS (
 	SELECT 'foo bras'::text as qs, term, greatest(8,char_length(term)) as len
 	FROM unnest(array['foo bris','foo bri2','bar bras','bar bras 123','foo bras', 'foo']) t(term)
-) SELECT qs,term, term_lib.score(qs,term,f), sc_type, len
+) SELECT qs,term, term_lib.score(qs,term,f), sc_func, len
   FROM 	word w, unnest(array['std','levdiffperc','lev500']) f(sc_func)
   ORDER BY f,3 DESC,1,2;
 
