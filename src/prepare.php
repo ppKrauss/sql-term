@@ -52,6 +52,7 @@ $db = new pdo($dsn,$PG_USER,$PG_PW);
 
 if ($reini) {
 	print "... RE-INITING SQL SCHEMA TERM$modeVers...\n";
+	sql_exec($db,  file_get_contents($projects['carga']."/src/term_lib.sql")  );
 	sql_exec($db,  file_get_contents($projects['carga']."/src/ini$modeVers.sql")  );
 	print "... each complementar INI, \n";
 	foreach($INI as $sql)
@@ -131,5 +132,4 @@ if (1) {
 
 print "$msg\n\nEND(tot $n lines scanned, $n2 lines used)\n";
 ?>
-
 
