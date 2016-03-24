@@ -85,10 +85,10 @@ SELECT term1.N2C_tab( 'ufscar', term1.nsget_nsid('wayta-code') ) as qs_not_valid
 SELECT term1.N2C_tab(' - USP - ',4,false) as a, term1.N2C_tab('puc-mg',term1.nsget_nsid('wayta-code'),true) as b;
 
 \qecho '====== list of synonyms:   ================================='
-SELECT * FROM term1.N2Ns_tab('fucape', 4, true);  -- normalized input, knowed ns
+SELECT * FROM term1.N2Ns_tab('fucape', 4, NULL, true);  -- normalized input, knowed ns
 
 SELECT *   -- non-normalized input, ns-mask by a ns-label
-FROM term1.N2Ns_tab(' - usp - ', term1.basemask('wayta-pt'), false) 
+FROM term1.N2Ns_tab(' - usp - ', term1.basemask('wayta-pt'), NULL, false) 
 WHERE nsid!=2
 ORDER BY term
 LIMIT 10;

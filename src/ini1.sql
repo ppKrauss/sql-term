@@ -187,40 +187,6 @@ CREATE FUNCTION term1.nsget_nsopt2int(JSONB) RETURNS int AS $f$
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
-CREATE FUNCTION term1.search(
-	-- Wrap for JSONB and outputs as RPC. Se #SQL-TEMPLATE of term1.N2C().
-	-- SELECT term1.search('{"op":"%","qs":"embrapa","ns":"wayta-code","lim":5,"otype":"a"}'::jsonb);
-	JSONB  -- see all valid params
-) RETURNS JSONB AS $f$
-DECLARE
-	p JSONB;
-	r JSONB;
-	p_id text;
-BEGIN
-	p  :=  term_lib.jparams(
-		$1,
-		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
-	);
-	IF p->>'otype'='l' THEN 
-		-- FALTA revisar convenção, se for o caso refazer estrutura de t.*, com atributo dado pela score-function 
-		SELECT  jsonb_agg(to_jsonb(t)) INTO r
-		FROM term1.search_tab(p) t;
-	ELSE
-		SELECT jsonb_build_object(
-			'items',CASE p->>'otype'
-				WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar como usar int[]
-				WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
-				ELSE 		jsonb_agg(to_jsonb(t))
-			END,
-			'count', count(*),
-			'sc_func',max(t.jetc->>'sc_func')
-			)  INTO r
-		FROM term1.search_tab(p) t;
-	END IF;
-	RETURN 	 term_lib.jrpc_ret(r,($1->>'id')::text);
-END;
-$f$ LANGUAGE PLpgSQL IMMUTABLE;
-
 
 -- -- -- -- -- -- -- 
 -- TERM1 TERM-RESOLVERS:
@@ -245,37 +211,40 @@ CREATE FUNCTION term1.N2C_tab(text,text,boolean DEFAULT true) RETURNS SETOF term
 	SELECT term1.N2C_tab($1, term1.basemask($2), $3);
 $f$ LANGUAGE SQL IMMUTABLE;
 
-
-CREATE FUNCTION term1.N2C(
-	-- Wrap for JSONB and outputs as RPC
-	JSONB  -- see all valid params
-) RETURNS JSONB AS $f$
+CREATE FUNCTION term1.N2C_tab(
+	-- overloading, wrap for N2C_tab()
+	JSONB
+) RETURNS SETOF term1.tab  AS $f$
 DECLARE
 	p JSONB;
-	r JSONB;
-	p_id text;
-	n int;
 BEGIN
 	p  :=  term_lib.jparams(
 		$1,
 		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
 	);
-	SELECT jsonb_build_object(
-		'items',CASE p->>'otype'
-			WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar se pode usar int[]
-			WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
-			ELSE 		jsonb_agg(to_jsonb(t))
-		END,
-		'count', count(*)
-		)  INTO r
-	FROM term1.N2c_tab(
-		p->>'qs', term1.nsget_nsopt2int(p), (p->>'qs_is_normalized')::boolean
-	) t;
-	-- 'sucess': FOUND
-	-- GET DIAGNOSTICS n = ROW_COUNT;
-	RETURN 	term_lib.jrpc_ret(r, ($1->>'id')::text );
+	RETURN QUERY SELECT * FROM term1.N2C_tab( p->>'qs', term1.nsget_nsopt2int(p), (p->>'qs_is_normalized')::boolean );
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
+
+
+CREATE FUNCTION term1.N2C(
+	-- Wrap for output as RPC.
+	JSONB  -- see all valid params
+) RETURNS JSONB AS $f$
+	SELECT term_lib.jrpc_ret(
+		  jsonb_build_object(
+			'items',CASE (term_lib.jparams($1))->>'otype'
+				WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar se pode usar int[]
+				WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
+				ELSE 		jsonb_agg(term_lib.unpack(to_jsonb(t),'jetc'))
+			END,
+			'count', count(*),
+			'sc_func',max(t.jetc->>'sc_func')
+		  ),
+		  ($1->>'id')::text
+		)
+	FROM term1.N2C_tab($1) t;
+$f$ LANGUAGE SQL IMMUTABLE;
 
 
 -- -- --
@@ -284,12 +253,14 @@ $f$ LANGUAGE PLpgSQL IMMUTABLE;
 CREATE FUNCTION term1.N2Ns_tab(
 	-- 
 	-- Returns canonic and all the synonyms of a valid term (of a namespace).
-	-- Ex. SELECT * FROM term1.N2Ns_tab(' - puc-mg - ',4,false);  -- 
+	-- Ex. SELECT * FROM term1.N2Ns_tab(' - puc-mg - ',4,NULL,false); 
 	--
 	text,            	-- 1. valid term
 	int DEFAULT 1,     	-- 2. namespace MASK
-	boolean DEFAULT true,	-- 3. exact (true) or apply normalization (false)
-	boolean DEFAULT true	-- 4. (non-used, enforcing sort) to sort by ns, term
+	int DEFAULT NULL,       -- 3. Limit
+	boolean DEFAULT true,	-- 4. exact (true) or apply normalization (false)
+	boolean DEFAULT true	-- 5. (non-used, enforcing sort) to sort by ns, term
+-- FALTA LIMIT (e propagar demais funções)
 ) RETURNS SETOF term1.tab AS $f$
    -- TO DO: optimize (see explain) and simplify using term1.term_full 
    SELECT t.id, t.fk_ns as nsid, t.term, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
@@ -299,52 +270,70 @@ CREATE FUNCTION term1.N2Ns_tab(
 		ELSE (SELECT id FROM term1.term_canonic t WHERE t.id=s.fk_canonic) -- caso nao-canonico
 		END as canonic_id
 	   FROM term1.term s
-	   WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $3 THEN term=$1 ELSE term=term_lib.normalizeterm($1) END
+	   WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $4 THEN term=$1 ELSE term=term_lib.normalizeterm($1) END
        ) c
        ON t.id=c.canonic_id OR fk_canonic=c.canonic_id
-   ORDER BY t.fk_ns, t.term;
+   ORDER BY t.fk_ns, t.term -- $5 future 
+   LIMIT $3
 $f$ LANGUAGE SQL IMMUTABLE;
 
-CREATE FUNCTION term1.N2Ns_tab(text,text,boolean DEFAULT true) RETURNS SETOF term1.tab AS $f$
-	-- Wrap for N2Ns_tab() and nsget_nsid().
-	SELECT term1.N2Ns_tab($1, term1.nsget_nsid($2), $3);  -- old basemask(), preffer restrictive
+CREATE FUNCTION term1.N2Ns_tab(text,text,int DEFAULT NULL,boolean DEFAULT true,boolean DEFAULT true) RETURNS SETOF term1.tab AS $f$
+	-- Overload wrap for N2Ns_tab() and nsget_nsid().
+	SELECT term1.N2Ns_tab($1, term1.nsget_nsid($2), $3, $4, $5);  -- old basemask(), prefer restrictive
 $f$ LANGUAGE SQL IMMUTABLE;
 
-
-CREATE FUNCTION term1.N2Ns(
-	-- Wrap for JSONB and outputs as RPC. Se #SQL-TEMPLATE of term1.N2C().
-	JSONB  -- see all valid params
-) RETURNS JSONB AS $f$
+CREATE FUNCTION term1.N2Ns_tab(
+	-- Overload wrap for N2Ns_tab()
+	JSONB
+) RETURNS SETOF term1.tab  AS $f$
 DECLARE
 	p JSONB;
-	r JSONB;
-	p_id text;
 BEGIN
--- FALTA num itens
 	p  :=  term_lib.jparams(
 		$1,
 		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
 	);
-	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
-	SELECT CASE p->>'otype'
-		WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
-		WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
-		ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
-		END
-	INTO r
-	FROM term1.N2Ns_tab(
-		p->>'qs', term1.nsget_nsopt2int(p), (p->>'qs_is_normalized')::boolean
-	) t;
-
-	RETURN 	 r;
+	RETURN QUERY SELECT * 
+	             FROM term1.N2Ns_tab( 
+			p->>'qs', term1.nsget_nsopt2int(p), (p->>'lim')::int,
+			(p->>'qs_is_normalized')::boolean,  (p->>'osort')::boolean 
+		     );
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
+
+CREATE FUNCTION term1.N2Ns(
+	-- Wrap for N2Ns_tab() output as JSON-RPC.  See #SQL-STRUCTURE of term1.N2C().
+	JSONB  -- see all valid params
+) RETURNS JSONB AS $f$
+	SELECT CASE WHEN max(t.id)<0 THEN
+		  term_lib.jrpc_error(
+			max(t.term), 
+			max(t.id),
+			($1->>'id')::text
+		  )
+		ELSE term_lib.jrpc_ret(
+		  jsonb_build_object(
+			'items',CASE (term_lib.jparams($1))->>'otype'
+				WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar se pode usar int[]
+				WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
+				ELSE 		jsonb_agg(term_lib.unpack(to_jsonb(t),'jetc'))
+			END,
+			'count', count(*),
+			'sc_max', max(t.score),
+			'sc_func',max(t.jetc->>'sc_func'),
+			'synonyms_count', sum((t.jetc->>'synonyms_count')::int)
+		  ),
+		  ($1->>'id')::text
+		)
+		END
+	FROM term1.N2Ns_tab($1) t;
+$f$ LANGUAGE SQL IMMUTABLE;
 
 
 -- -- -- -- -- -- -- --
 -- TERM-SEARCH ENGINES:
 
-CREATE or replace FUNCTION term1.search_tab(
+CREATE FUNCTION term1.search_tab(
 	--
 	--  Executes all search forms, by similar terms, and all output modes provided for the system.
 	--  Debug with 'search-json'
@@ -352,8 +341,7 @@ CREATE or replace FUNCTION term1.search_tab(
 	--  @DEFAULT-PARAMS "op": "=", "lim": 5, "sc_func": "dft", "metaphone": false, "sc_maxd": 100, "metaphone_len": 6, ...
 	--
 	JSONB -- 1. all input parameters. 
-) RETURNS SETOF term1.tab AS $f$ 
-      
+) RETURNS SETOF term1.tab AS $f$
 DECLARE
 	p JSONB;
 	p_scfunc text; 	-- Score function label
@@ -365,19 +353,23 @@ DECLARE
 	p_conf regconfig;
 	jetc jsonb;
 BEGIN
-	p := jsonb_build_object( -- all default values
+	p := term_lib.jparams($1, jsonb_build_object( -- all default values
 		'op','=', 'lim',5, 'etc',1, 'sc_func','dft', 'sc_maxd',100, 'metaphone',false, 'metaphone_len',6, 
-		'qs_lang','pt', 'nsmask',255, 
-		'debug',null 
-	) || CASE WHEN $1->'params' IS NOT NULL THEN $1->'params' ELSE $1 END;
+		'qs_lang','pt', 'nsmask',255, 'debug',null 
+	));
+	p_qs := term_lib.normalizeterm(p->>'qs');
+	p_nsmask := term1.nsget_nsopt2int(p);
+
 	IF p->>'debug'='search-json' THEN 
-		RAISE EXCEPTION 'debug search-json, params=%', p;
+		RAISE EXCEPTION 'DEBUG search-json: nsmask=%, qs="%", params=%', p_nsmask::text, p_qs, p;
 	END IF;
-	p_qs := term_lib.normalizeterm($1->>'qs');
 	IF p_qs IS NULL OR char_length(p_qs)<2 THEN 
-		RETURN QUERY SELECT -10 as id, 'NULL querystring, input jsonb need params/qs', NULL;
+	  RETURN QUERY SELECT -10::int, null::int, 'Empty or one-letter querystring'::text, NULL::int, NULL::boolean, NULL::int, NULL::jsonb;
 	END IF;
-	p_nsmask:= term1.nsget_nsopt2int(p);
+	IF p_nsmask IS NULL OR p_nsmask=0 THEN 
+	  RETURN QUERY SELECT -11::int, null::int, 'NULL or invalid namespace'::text,     NULL::int, NULL::boolean, NULL::int, NULL::jsonb;
+	END IF;
+
 	p_scfunc := p->>'sc_func';
 	jetc   :=   jsonb_build_object('sc_func', p->>'sc_func');   -- || other
 	p_maxd :=   p->>'sc_maxd';  -- ::int
@@ -443,12 +435,51 @@ BEGIN
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
-CREATE or replace FUNCTION term1.search2c_tab(
+CREATE FUNCTION term1.search(
+	--
+	-- Wrap for output as JSON-RPC. Se #SQL-TEMPLATE of term1.N2Ns().
+	-- SELECT term1.search('{"op":"%","qs":"embrapa","ns":"wayta-code","lim":5,"otype":"a"}'::jsonb);
+	--
+	JSONB  -- all valid params
+) RETURNS JSONB AS $f$
+	SELECT CASE WHEN max(t.id)<0 THEN
+		  term_lib.jrpc_error(
+			max(t.term), 
+			max(t.id),
+			($1->>'id')::text
+		  )
+		ELSE term_lib.jrpc_ret(
+		  jsonb_build_object(
+			'items',CASE p.p->>'otype'
+				WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar se pode usar int[]
+				WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
+				ELSE 		jsonb_agg(term_lib.unpack(to_jsonb(t),'jetc'))
+			END,
+			'count', count(*),
+			'sc_max', max(t.score),
+			'sc_func',max(t.jetc->>'sc_func'),
+			--'synonyms_count', sum((t.jetc->>'synonyms_count')::int),
+			'op', max(p.p->>'op'),
+			'lim', max(p.p->>'lim'),
+			'metaphone', max(p.p->>'metaphone')
+		  ),
+		  ($1->>'id')::text
+		)
+		END
+	FROM term1.search_tab($1) t, 
+	     term_lib.jparams($1, jsonb_build_object('op','=', 'lim',5, 'metaphone',false)) p(p)
+	GROUP BY p.p;
+$f$ LANGUAGE SQL IMMUTABLE;
+
+
+----
+
+CREATE FUNCTION term1.search2c_tab(
 	--
 	-- term1.search_tab() complement, to reduce the output to only canonic forms.
 	--
 	JSONB -- 1. all input parameters. 
-) RETURNS term1.tab AS $f$
+) RETURNS SETOF term1.tab AS $f$
 	SELECT 	max( COALESCE(s.fk_canonic,s.id) ) AS cid, -- the s.id is the canonic when c.term is null
 		max(s.nsid) as nsid,        		-- certo é array_agg(distinct s.fk_ns)
 		COALESCE(c.term,s.term) AS cterm, 	-- the s.term is the canonic when c.term is null
@@ -457,104 +488,155 @@ CREATE or replace FUNCTION term1.search2c_tab(
 		NULL::int as fk_canonic,  	-- all are null
 		jsonb_build_object( 'sc_func',max(s.jetc->>'sc_func'), 'synonyms_count', count(*) )
 	FROM term1.search_tab($1) s LEFT JOIN term1.term_canonic c ON c.id=s.fk_canonic  -- certo  é RIGHT!
-	WHERE c.id IS NOT NULL 
 	GROUP BY cterm
-	HAVING max(s.nsid)>0
 	ORDER BY score DESC, cterm;
 $f$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE or replace FUNCTION term1.search2c(
-	-- Wrap for JSONB and outputs as RPC. Se #SQL-TEMPLATE of term1.N2C().
+CREATE FUNCTION term1.search2c(
+	-- Wrap for JSONB and outputs as JSON-RPC. See #SQL-structure term1.N2Ns().
 	JSONB  -- see all valid params
 ) RETURNS JSONB AS $f$
-DECLARE
-	p JSONB;
-	r JSONB;
-	p_id text;
-BEGIN
-	p  :=  term_lib.jparams(
-		$1,
-		'{"lim":null,"osort":true,"otype":"l","qs_is_normalized":true}'::jsonb
-	);
-	p_id := ($1->>'id')::text; -- from original, webservice caller-ID
-	
-	SELECT CASE WHEN max(id) IS NULL THEN term_lib.jrpc_error('nenhum termo encontrado',1,p_id) 
-	       ELSE CASE p->>'otype'
-		 WHEN 'o' THEN 	term_lib.jrpc_ret( array_agg(t.term), array_agg(t.score)::text[], p_id ) -- revisar se pode usar int[]
-		 WHEN 'a' THEN 	term_lib.jrpc_ret( jsonb_agg(to_jsonb(t.term)), p_id )
-		 ELSE 		term_lib.jrpc_ret( jsonb_agg(to_jsonb(t)), p_id )
-		 END 
-	       END INTO r
-	FROM term1.search2c_tab(p) t;
-	
-	RETURN 	CASE WHEN r IS NULL THEN term_lib.jrpc_error('qs não-encontrada',-1,p_id) ELSE  r END;
-END;
-$f$ LANGUAGE PLpgSQL IMMUTABLE;
+	SELECT CASE WHEN max(t.id)<0 THEN
+		  term_lib.jrpc_error(
+			max(t.term), 
+			max(t.id),
+			($1->>'id')::text
+		  )
+		ELSE term_lib.jrpc_ret(
+		  jsonb_build_object(
+			'items',CASE p.p->>'otype'
+				WHEN 'o' THEN 	jsonb_object( array_agg(t.term), array_agg(t.score)::text[] ) -- revisar se pode usar int[]
+				WHEN 'a' THEN 	jsonb_agg(to_jsonb(t.term))
+				ELSE 		jsonb_agg(term_lib.unpack(to_jsonb(t),'jetc'))
+			END,
+			'count', count(*),
+			'sc_max', max(t.score),
+			'sc_func',max(t.jetc->>'sc_func'),
+			'synonyms_count', sum((t.jetc->>'synonyms_count')::int),
+			'op', max(p.p->>'op'),
+			'lim', max(p.p->>'lim'),
+			'metaphone', max(p.p->>'metaphone')
+		  ),
+		  ($1->>'id')::text
+		)
+		END
+	FROM term1.search2c_tab($1) t, 
+	     term_lib.jparams($1,jsonb_build_object('op','=', 'lim',5, 'metaphone',false)) p(p)
+	GROUP BY p.p;
+$f$ LANGUAGE SQL IMMUTABLE;
 
+---
 
-CREATE or replace FUNCTION term1.find_tab(
---
--- Find a term, or "nearest term", by an heuristic of search strategies. 
--- PS: only didactic illustration, it is not a good algorithm.
---
-	text, -- input qs
+CREATE FUNCTION term1.find(
+	--
+	-- Find a term, or "nearest term", by an heuristic of search strategies. 
+	-- PS: only didactic illustration, it is not a good algorithm.
+	--
 	JSONB DEFAULT NULL -- input params
 ) RETURNS JSONB AS $f$
 DECLARE
+  p JSONB;
+  nwords int;
   result JSONB;
-  params JSONB;
-  lim int DEFAULT 100;          -- LIMIT  (remove??)
-  ns smallint DEFAULT 1;        -- Namespace  (remove??)
-  mlen int DEFAULT 6;		-- p_metaphone_len  (remove??)
-  otype char DEFAULT 'a';
 BEGIN
-	IF $2 IS NULL THEN 
-		params := jsonb_build_object('otype',otype);
-	ELSIF $2->'otype' IS NULL THEN 
-		params := $2 || jsonb_build_object('otype',otype);
-	ELSE
- 		params := $2;
-		otype  := params->>'otype';
-	END IF;
-	IF params->'lim' IS NOT NULL THEN lim:=params->>'lim'; END IF;
-	IF params->'ns' IS NOT NULL THEN  ns:=params->>'ns'; END IF;
-
-
-	result := term1.search_tab($1,'=',lim,ns,params); -- exact
-	IF (result->'error' IS NOT NULL) THEN  -- checks only the first
-		RETURN result;
-	ELSIF (result->'result'->>'n')::int >0 THEN
+	p := term_lib.jparams( $1, '{"metaphone":false}'::jsonb );
+	result := term1.search( p || '{"op":"="}'::jsonb ); -- exact
+	IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
 		RETURN result;
 	END IF;
-
-	result := term1.search_tab($1,'&',lim,ns,params); -- all words, any order
-	IF (result->'result'->>'n')::int >0 THEN
+	SELECT 1 + char_length(x) - char_length(replace(x,' ','')) INTO nwords
+	FROM term_lib.multimetaphone(p->>'qs') t(x);
+	IF nwords > 2 THEN
+		result := term1.search( p || '{"op":"p"}'::jsonb ); -- prefixed frag-words in offered order
+		IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
+			RETURN result;
+		END IF;
+	END IF;
+	result := term1.search( p || '{"op":"&"}'::jsonb ); -- all words in any order
+	IF (result->'result'->>'count')::int >0 THEN
 		RETURN result;
 	END IF;
-	result := term1.search_tab($1,'p',lim,ns,params); -- prefix
-	IF (result->'result'->>'n')::int >0 THEN
-		RETURN result;
+	IF nwords > 1 OR char_length(trim(p->>'qs'))>5 THEN
+		result := term1.search( p || '{"op":"%"}'::jsonb ); -- all frag-words in offered order
+		IF (result->'result'->>'n')::int >0 THEN
+			RETURN result;
+		END IF;
 	END IF;
 
-	params := params || jsonb_build_object('metaphone',true); -- enforces metaphone
-	IF params->'metaphone_len' IS NOT NULL THEN mlen:=params->>'metaphone_len'; END IF;
-	
-	result := term1.search_tab($1,'=',lim,ns,mlen,params); -- exact metaphone
-	IF (result->'result'->>'n')::int >0 THEN
+	p := term_lib.jparams( $1, '{"metaphone":true}'::jsonb ); -- enforces metaphone
+	result := term1.search( p || '{"op":"="}'::jsonb );
+	IF (result->'result'->>'count')::int >0 THEN
 		RETURN result;
 	END IF;
-	result := term1.search_tab($1,'&',lim,ns,mlen,params); -- all metaphones, any order
-	IF (result->'result'->>'n')::int >0 THEN
+	IF nwords > 2 THEN
+		result := term1.search( p || '{"op":"p"}'::jsonb ); -- all frag-words in offered order
+		IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
+			RETURN result;
+		END IF;
+	END IF;
+	result := term1.search( p || '{"op":"&"}'::jsonb ); -- all words in any order
+	IF (result->'result'->>'count')::int >0 THEN
 		RETURN result;
 	END IF;
-	result := term1.search_tab($1,'p',lim,ns,mlen,params); -- prefix
-	return result;
+	RETURN term1.search( p || '{"op":"%"}'::jsonb );
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 
+CREATE FUNCTION term1.find2c(
+	--
+	-- Same as find() but using search2c() into.
+	--
+	JSONB DEFAULT NULL -- input params
+) RETURNS JSONB AS $f$
+DECLARE
+  p JSONB;
+  nwords int;
+  result JSONB;
+BEGIN
+	p := term_lib.jparams( $1, '{"metaphone":false}'::jsonb );
+	result := term1.search2c( p || '{"op":"="}'::jsonb ); -- exact
+	IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
+		RETURN result;
+	END IF;
+	SELECT 1 + char_length(x) - char_length(replace(x,' ','')) INTO nwords
+	FROM term_lib.multimetaphone(p->>'qs') t(x);
+	IF nwords > 2 THEN
+		result := term1.search2c( p || '{"op":"p"}'::jsonb ); -- prefixed frag-words in offered order
+		IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
+			RETURN result;
+		END IF;
+	END IF;
+	result := term1.search2c( p || '{"op":"&"}'::jsonb ); -- all words in any order
+	IF (result->'result'->>'count')::int >0 THEN
+		RETURN result;
+	END IF;
+	IF nwords > 1 OR char_length(trim(p->>'qs'))>5 THEN
+		result := term1.search2c( p || '{"op":"%"}'::jsonb ); -- all frag-words in offered order
+		IF (result->'result'->>'n')::int >0 THEN
+			RETURN result;
+		END IF;
+	END IF;
 
+	p := term_lib.jparams( $1, '{"metaphone":true}'::jsonb ); -- enforces metaphone
+	result := term1.search2c( p || '{"op":"="}'::jsonb );
+	IF (result->'result'->>'count')::int >0 THEN
+		RETURN result;
+	END IF;
+	IF nwords > 2 THEN
+		result := term1.search2c( p || '{"op":"p"}'::jsonb ); -- all frag-words in offered order
+		IF (result->'result'->>'count')::int >0 THEN  -- OR result->'error' IS NOT NULL
+			RETURN result;
+		END IF;
+	END IF;
+	result := term1.search2c( p || '{"op":"&"}'::jsonb ); -- all words in any order
+	IF (result->'result'->>'count')::int >0 THEN
+		RETURN result;
+	END IF;
+	RETURN term1.search2c( p || '{"op":"%"}'::jsonb );
+END;
+$f$ LANGUAGE PLpgSQL IMMUTABLE;
 
 ---  ---  ---  ---  ---  ---  ---  ---  --- 
 ---  ---  ---  ---  ---  ---  ---  ---  --- 

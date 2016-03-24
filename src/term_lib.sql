@@ -21,7 +21,7 @@ CREATE SCHEMA term_lib; -- independent lib for all Term schemas.
 
 CREATE FUNCTION term_lib.nsget_lang(int,boolean DEFAULT false) RETURNS char(2) AS $f$
 	--
-	-- Inter-schema proxy for term1.nsget_lang_aux(). 
+	-- Inter-schema alias for term1.nsget_lang_aux(). 
 	--
 	SELECT term1.nsget_lang_aux($1,$2);  -- !Change here the calling function to term0 or term2 when necessary!
 $f$ LANGUAGE SQL IMMUTABLE;
@@ -31,13 +31,25 @@ CREATE FUNCTION term_lib.jparams(
 	--
 	-- Converts JSONB or JSON-RPC request (with reserved word "params") into JSOB+DEFAULTS.
 	--
-	-- Ex.SELECT term_lib.jparams('{"x":123}'::jsonb, '{"x":1,"y":999}'::jsonb)
+	-- Ex.SELECT term_lib.jparams('{"x":12}'::jsonb, '{"x":5,"y":34}'::jsonb)
 	--
 	JSONB,			-- the input request (direct or at "params" property)
 	JSONB DEFAULT NULL	-- (optional) default values.
 ) RETURNS JSONB AS $f$	
 	SELECT CASE WHEN $2 IS NULL THEN jo ELSE $2 || jo END
 	FROM (SELECT CASE WHEN $1->'params' IS NULL THEN $1 ELSE $1->'params' END AS jo) t;
+$f$ LANGUAGE SQL IMMUTABLE;
+
+
+CREATE FUNCTION term_lib.unpack(
+	--
+	-- Remove a sub-object and merge its contents.
+	-- Ex. SELECT term_lib.unpack('{"x":12,"sub":{"y":34}}'::jsonb,'sub');
+	--
+	JSONB,	-- full object
+	text	-- pack name
+) RETURNS JSONB AS $f$	
+	SELECT ($1-$2)::JSONB || ($1->>$2)::JSONB;
 $f$ LANGUAGE SQL IMMUTABLE;
 
 
@@ -106,14 +118,14 @@ CREATE FUNCTION term_lib.jrpc_ret(
 	JSON,      		-- 1. full result (all items) before to pack
 	int,       		-- 2. items COUNT of the full result 
 	text DEFAULT NULL, 	-- 3. id of callback
-	text DEFAULT NULL, 	-- 4. sc_func 
+	text DEFAULT NULL, 	-- 4. sc_func or null for use 5 
 	JSONB DEFAULT NULL      -- 5. json with sc_func and other data, instead of 4.
 ) RETURNS JSONB AS $f$
 	SELECT jsonb_build_object(
 		'result', CASE 
+			WHEN $5 IS NOT NULL THEN jsonb_build_object('items',$1, 'count',$2) || $5
 			WHEN $4 IS NULL THEN jsonb_build_object('items',$1, 'count',$2)
-			WHEN $5 IS NULL THEN jsonb_build_object('items',$1, 'count',$2, 'sc_func',$4)
-			ELSE jsonb_build_object('items',$1, 'count',$2) || $5
+			ELSE jsonb_build_object('items',$1, 'count',$2, 'sc_func',$4)
 			END,
 		'id',$3,
 		'jsonrpc',' 2.0'

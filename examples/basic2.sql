@@ -8,12 +8,12 @@
 \qecho 
 
 \qecho '====== Terms, some samples and info retrieval:   ========================'
-SELECT * FROM term1.term WHERE id>14036 LIMIT 3;
-SELECT id, term, label, is_base FROM term1.term_ns WHERE id>14036 LIMIT 3;
+SELECT * FROM term1.term WHERE term>'m' LIMIT 3;
+SELECT id, term, label, is_base FROM term1.term_ns WHERE term>'m' LIMIT 3;
 
-SELECT id,term as canonic_term FROM term1.term_canonic WHERE id>14036 LIMIT 3;
-SELECT id,term as synonym_term FROM term1.term_synonym WHERE id>14036 LIMIT 3;
-SELECT id,term as synonym_term, term_canonic FROM term1.term_synonym_full WHERE id>14036 LIMIT 3;
+SELECT id,term as canonic_term FROM term1.term_canonic WHERE term>'m' LIMIT 3;
+SELECT id,term as synonym_term FROM term1.term_synonym WHERE term>'m' LIMIT 3;
+SELECT id,term as synonym_term, term_canonic FROM term1.term_synonym_full WHERE term>'m' LIMIT 3;
 
 \qecho '====== 10 top lexemes (more frequent words by its lexemes) of each namespace:   ==========='
 WITH ns AS (SELECT nsid FROM term1.ns WHERE (nsid&term1.basemask('wayta-pt'))::boolean)

@@ -3,39 +3,39 @@
 =================================================================
 
 ====== Terms, some samples and info retrieval:   ========================
-  id   | fk_ns |             term             | fk_canonic | is_canonic | is_cult | is_suspect |  created   |                                                                  jinfo                                                                  |  kx_metaphone   |                         kx_tsvector                         
--------+-------+------------------------------+------------+------------+---------+------------+------------+-----------------------------------------------------------------------------------------------------------------------------------------+-----------------+-------------------------------------------------------------
- 40053 |     2 | université aix-marseille 3   |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS   | '3':5 'aix':3 'aix-marseill':2 'marseill':4 'universit':1
- 40054 |     2 | université aix-marseille i   |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS I | 'aix':3 'aix-marseill':2 'i':5 'marseill':4 'universit':1
- 40055 |     2 | université aix-marseille iii |      40064 | f          |         | f          | 2016-03-21 | {"city": "", "form": "Université d'Aix-Marseille", "iso2": "FR", "state": "", "source": "data/normalized_aff.csv", "country": "France"} | UNFRST AKSMRS I | 'aix':3 'aix-marseill':2 'iii':5 'marseill':4 'universit':1
+  id   | fk_ns |                                        term                                         | fk_canonic | is_canonic | is_cult | is_suspect |  created   |                                                             jinfo                                                              |                   kx_metaphone                    |                                                    kx_tsvector                                                    
+-------+-------+-------------------------------------------------------------------------------------+------------+------------+---------+------------+------------+--------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------+-------------------------------------------------------------------------------------------------------------------
+ 41229 |     2 | who collaborating centre for applied medical malacology and schistosomiasis control |      41268 | f          |         | f          | 2016-03-24 | {"city": "", "form": "World Health Organization", "iso2": "", "state": "", "source": "data/normalized_aff.csv", "country": ""} | H KLBRTN SNTR FR APLT MTKL MLKLJ ANT SKSTSM KNTRL | 'and':8 'applied':5 'centr':3 'collaborating':2 'control':10 'malacology':7 'medical':6 'schistosomias':9 'who':1
+ 41231 |     2 | who collaborating centre for education                                              |      41268 | f          |         | f          | 2016-03-24 | {"city": "", "form": "World Health Organization", "iso2": "", "state": "", "source": "data/normalized_aff.csv", "country": ""} | H KLBRTN SNTR FR ETKXN                            | 'centr':3 'collaborating':2 'education':5 'who':1
+ 41232 |     2 | who collaborating centre for nursing research developmen                            |      41268 | f          |         | f          | 2016-03-24 | {"city": "", "form": "World Health Organization", "iso2": "", "state": "", "source": "data/normalized_aff.csv", "country": ""} | H KLBRTN SNTR FR NRSNK RSRX TFLPMN                | 'centr':3 'collaborating':2 'developmen':7 'nursing':5 'research':6 'who':1
 (3 registros)
 
-  id   |             term             |  label   | is_base 
--------+------------------------------+----------+---------
- 40053 | université aix-marseille 3   | wayta-pt | t
- 40054 | université aix-marseille i   | wayta-pt | t
- 40055 | université aix-marseille iii | wayta-pt | t
+  id   |                                        term                                         |  label   | is_base 
+-------+-------------------------------------------------------------------------------------+----------+---------
+ 41229 | who collaborating centre for applied medical malacology and schistosomiasis control | wayta-pt | t
+ 41231 | who collaborating centre for education                                              | wayta-pt | t
+ 41232 | who collaborating centre for nursing research developmen                            | wayta-pt | t
 (3 registros)
 
-  id   |   canonic_term   
--------+------------------
- 14246 | praxishochschule
- 31251 | simcenter
- 31714 | sunnyvale
+  id   |  canonic_term   
+-------+-----------------
+ 32426 | unarte
+ 12214 | mercyfirst
+ 12434 | mittuniversitet
 (3 registros)
 
-  id   |         synonym_term         
--------+------------------------------
- 40053 | université aix-marseille 3
- 40054 | université aix-marseille i
- 40055 | université aix-marseille iii
+  id   |                                    synonym_term                                     
+-------+-------------------------------------------------------------------------------------
+ 41229 | who collaborating centre for applied medical malacology and schistosomiasis control
+ 41231 | who collaborating centre for education
+ 41232 | who collaborating centre for nursing research developmen
 (3 registros)
 
-  id   |         synonym_term         |        term_canonic        
--------+------------------------------+----------------------------
- 40053 | université aix-marseille 3   | université d'aix-marseille
- 40054 | université aix-marseille i   | université d'aix-marseille
- 40055 | université aix-marseille iii | université d'aix-marseille
+  id   |                                    synonym_term                                     |       term_canonic        
+-------+-------------------------------------------------------------------------------------+---------------------------
+ 41229 | who collaborating centre for applied medical malacology and schistosomiasis control | world health organization
+ 41231 | who collaborating centre for education                                              | world health organization
+ 41232 | who collaborating centre for nursing research developmen                            | world health organization
 (3 registros)
 
 ====== 10 top lexemes (more frequent words by its lexemes) of each namespace:   ===========
@@ -190,29 +190,32 @@
  35405 |    4 | universidade de são paulo |   100 | t          |            | {"sc_func": "dft", "synonyms_count": 3}
 (1 registro)
 
- id | nsid | term | score | is_canonic | fk_canonic | jetc 
-----+------+------+-------+------------+------------+------
-    |      |      |       |            |            | 
+  id  | nsid |  term   | score | is_canonic | fk_canonic |                  jetc                   
+------+------+---------+-------+------------+------------+-----------------------------------------
+ 4580 |    4 | embrapa |    45 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
 (1 registro)
 
-  id  | nsid |     term      | score | is_canonic | fk_canonic |                  jetc                   
-------+------+---------------+-------+------------+------------+-----------------------------------------
- 5045 |    4 | embrapa trigo |    30 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
+  id  | nsid |            term            | score | is_canonic | fk_canonic |                  jetc                   
+------+------+----------------------------+-------+------------+------------+-----------------------------------------
+ 4580 |    4 | embrapa                    |    45 | t          |            | {"sc_func": "dft", "synonyms_count": 2}
+ 5045 |    4 | embrapa trigo              |    30 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
+ 4678 |    4 | embrapa agropecuária oeste |    26 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
+ 4992 |    4 | embrapa soja               |    26 | t          |            | {"sc_func": "dft", "synonyms_count": 1}
+(4 registros)
+
+ count 
+-------
+    30
 (1 registro)
 
  count 
 -------
-     1
+    63
 (1 registro)
 
  count 
 -------
-     1
-(1 registro)
-
- count 
--------
-     1
+    30
 (1 registro)
 
  count 
@@ -221,28 +224,28 @@
 (1 registro)
 
 ====== Using search() and to search2c() illustrate complete JSON i/o   ====
-                                                                                  search                                                                                   
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": "123", "result": [{"id": 4580, "jetc": {"sc_func": "dft"}, "nsid": 4, "term": "embrapa", "score": 100, "fk_canonic": null, "is_canonic": true}], "jsonrpc": "2.0"}
+                                                                                                                                search                                                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"op": "=", "lim": "1", "count": 1, "items": [{"id": 4580, "nsid": 4, "term": "embrapa", "score": 100, "sc_func": "dft", "fk_canonic": null, "is_canonic": true}], "sc_max": 100, "sc_func": "dft", "metaphone": "false"}, "jsonrpc": "2.0"}
 (1 registro)
 
-                                                           search                                                           
-----------------------------------------------------------------------------------------------------------------------------
- {"id": "123", "result": {"count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_func": "dft"}, "jsonrpc": "2.0"}
+                                                                                         search                                                                                         
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"op": "p", "lim": "2", "count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_max": 100, "sc_func": "dft", "metaphone": "false"}, "jsonrpc": "2.0"}
 (1 registro)
 
-                                                           search                                                           
-----------------------------------------------------------------------------------------------------------------------------
- {"id": "123", "result": {"count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_func": "dft"}, "jsonrpc": "2.0"}
+                                                                                         search                                                                                         
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"op": "&", "lim": "2", "count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_max": 100, "sc_func": "dft", "metaphone": "false"}, "jsonrpc": "2.0"}
 (1 registro)
 
-                                    search2c                                     
----------------------------------------------------------------------------------
- {"id": "123", "result": {"universidade de são paulo": "43"}, "jsonrpc": " 2.0"}
+                                                                                                search2c                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": "123", "result": {"op": "%", "lim": "5", "count": 1, "items": {"universidade de são paulo": "43"}, "sc_max": 43, "sc_func": "dft", "metaphone": "true", "synonyms_count": 5}, "jsonrpc": "2.0"}
 (1 registro)
 
-                                          search2c                                           
----------------------------------------------------------------------------------------------
- {"id": "123", "error": {"code": 1, "message": "nenhum termo encontrado"}, "jsonrpc": "2.0"}
+ search2c 
+----------
+ 
 (1 registro)
 
