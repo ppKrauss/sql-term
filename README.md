@@ -3,6 +3,47 @@ This project offers a simple database for terminological storage, and illustrate
 ## Objetive ##
 To present *reference database structure* for "terminology by demand", and offer [requirements](https://en.wikipedia.org/wiki/Software_requirements_specification) and implemantation of a *framework* for manage, search and resolve controled terminologies. Also, as secondary aim, to illustrate a full-SQL implementation.
 
+## Fast Guide
+
+Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [ini1.sql](src/ini1.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/basic2.sql) (b2).
+
+* `term1`:
+   * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
+      * `n2c()`: normal to canonic, retrieves de canonic term from a valid term of a namespace. See b1.
+      * `n2ns()`: normal to normals, retrieves de all synonyms of a valid term (of a namespace). See b1.
+      * `search_tab()`: search by terms with specified option, returning nearst (similar) terms. See b2.
+      * `search2c()`: as `search_tab()` but reducing the set to canonical terms. See b2.
+      * `find()`: complete algorithm to "best search choice".
+      * `find2c()`: as `find()` but reducing to de set to canonical terms. See b3. [Compare with ElasticSearch at Wayta](https://github.com/ppKrauss/sql-term/wiki/Comparing-with-ElasticSearch).
+   * Utilities:
+      * `term1.basemask()` see b1.
+      * `nsget_nsopt2int()` see b2.
+* `term_lib`, main functions: 
+   * `term_lib.normalizeterm()`: see b1. 
+   * `term_lib.score()`: see b1.
+   * `term_lib.score_pairs()`: see b1.
+
+Standard JSON parameters:
+* `qs`: query string
+* `ns`: namespace or mask
+* ...
+
+## Modeling ##
+
+The *Term* table is so simple: each term, canonic or not, is a row in the main table. A secondary table for namespaces, *ns*, split terms in "base" group (theme, corpus or project) and  its "auxiliary" groups, for translations (one namespace for each language) and other dependent namespaces.
+
+UML class diagram of *SCHEMA term1* tables and views, at [ini1.sql](src/ini1.sql):
+
+![uml class diagram](http://yuml.me/fe36a8da)
+
+### Conventions ###
+The  public functions runs in a set of namespaces defined by the base-namespace, never in "all namespaces".
+Some functions can be config to target a specific namespace or  to specific languages.
+
+For each namespace the "canonic term" concept can change, from standardized to "most-popular" statistics. Semantic conflict or compromise between canonic term and its synonymous, are both valid, semantic analyses is out of scope of this project. The is_cult flag is an option to 
+
+For searching and resolving, use a base-namespace as target and adopt its mask with `term1.get_basemask(label)` for all searches and resolutions. To offer more specific language-target options in the interface, use `term1.get_baselangs(label)`.
+
 ## PREPARE ##
 ```
 git clone https://github.com/ppKrauss/sql-term.git
@@ -25,50 +66,8 @@ diff test.txt examples/basic1.dump.txt
 ```
 the database user (`-U postgres`)  must be conform edited `$PG_USER`. If database name also changed, the `psql` commands also must be changed.
 
-## Modeling ##
-
-The *Term* table is so simple: each term, canonic or not, is a row in the main table. A secondary table for namespaces, *ns*, split terms in "base" group (theme, corpus or project) and  its "auxiliary" groups, for translations (one namespace for each language) and other dependent namespaces.
-
-UML class diagram of *SCHEMA term1* tables and views, at [ini1.sql](src/ini1.sql):
-
-![uml class diagram](http://yuml.me/fe36a8da)
-
-### Conventions ###
-The  public functions runs in a set of namespaces defined by the base-namespace, never in "all namespaces".
-Some functions can be config to target a specific namespace or  to specific languages.
-
-For each namespace the "canonic term" concept can change, from standardized to "most-popular" statistics. Semantic conflict or compromise between canonic term and its synonymous, are both valid, semantic analyses is out of scope of this project. The is_cult flag is an option to 
-
-For searching and resolving, use a base-namespace as target and adopt its mask with `term1.get_basemask(label)` for all searches and resolutions. To offer more specific language-target options in the interface, use `term1.get_baselangs(label)`.
-
 ## Populating with other data
 ... CSV import , SQL import ... Namespaces... 
-
-## Fast Guide
-
-Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [ini1.sql](src/ini1.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/basic2.sql) (b2).
-
-
-* `term1`:
-   * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
-      * `n2c()`: normal to canonic, retrieves de canonic term from a valid term of a namespace. See b1.
-      * `n2ns()`: normal to normals, retrieves de all synonyms of a valid term (of a namespace). See b1.
-      * `search_tab()`: search by terms with specified option, returning nearst (similar) terms. See b2.
-      * `search2c()`: as `search_tab()` but reducing the set to canonical terms. See b2.
-      * `find()`: complete algorithm to "best search choice".
-      * `find2c()`: as `find()` but reducing to de set to canonical terms. See b3. [Compare with ElasticSearch at Wayta](https://github.com/ppKrauss/sql-term/wiki/Comparing-with-ElasticSearch).
-   * Utilities:
-      * `term1.basemask()` see b1.
-      * `nsget_nsopt2int()` see b2.
-* `term_lib`, main functions: 
-   * `term_lib.normalizeterm()`: see b1. 
-   * `term_lib.score()`: see b1.
-   * `term_lib.score_pairs()`: see b1.
-
-Standard JSON parameters:
-* `qs`: query string
-* `ns`: namespace or mask
-* ...
 
 ## NOTES
 
