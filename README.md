@@ -50,13 +50,13 @@ Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2
 
 
 * `term1`:
-   * Main functions:
+   * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
       * `n2c()`: normal to canonic, retrieves de canonic term from a valid term of a namespace. See b1.
       * `n2ns()`: normal to normals, retrieves de all synonyms of a valid term (of a namespace). See b1.
       * `search_tab()`: search by terms with specified option, returning nearst (similar) terms. See b2.
-      * `search2c()`: as `search_tab()` but reducing to only corresponding canonical terms. See b2.
-      * `find()`: complete algorithm to "best search choice"...
-      * `find2c()`: ...
+      * `search2c()`: as `search_tab()` but reducing the set to canonical terms. See b2.
+      * `find()`: complete algorithm to "best search choice".
+      * `find2c()`: as `find()` but reducing to de set to canonical terms. See b3. [Compare with ElasticSearch at Wayta](https://github.com/ppKrauss/sql-term/wiki/Comparing-with-ElasticSearch).
    * Utilities:
       * `term1.basemask()` see b1.
       * `nsget_nsopt2int()` see b2.
@@ -64,6 +64,11 @@ Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2
    * `term_lib.normalizeterm()`: see b1. 
    * `term_lib.score()`: see b1.
    * `term_lib.score_pairs()`: see b1.
+
+Standard JSON parameters:
+* `qs`: query string
+* `ns`: namespace or mask
+* ...
 
 ## NOTES
 
