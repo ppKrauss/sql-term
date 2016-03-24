@@ -1,7 +1,7 @@
 This project offers a simple database for terminological storage, and illustrates the use of [PostgreSQL textsearch-dictionaries](http://www.postgresql.org/docs/9.1/static/textsearch-dictionaries.html), [dict-xsyn](http://www.postgresql.org/docs/current/static/dict-xsyn.html), [metaphone and levenshtein](http://www.postgresql.org/docs/current/static/fuzzystrmatch.html), in a context of terminological applications (search and admin).  Is supposed that, when all logic is at the (SQL) database, the algorithms can be simpler and faster.
 
 ## Objetive ##
-To present *reference database structure* for "terminology by demand", and offer [requirements](https://en.wikipedia.org/wiki/Software_requirements_specification) and implemantation of a *framework* for manage, search and resolve controled terminologies. Also, as secondary aim, to illustrate a full-SQL implementation.
+To present *reference database structure* for "terminology by demand", and offer [requirements](https://en.wikipedia.org/wiki/Software_requirements_specification) and implementation of a *framework* for manage, search and resolve controlled terminologies. Also, as secondary aim, to illustrate a full-SQL implementation.
 
 ## Fast Guide
 
@@ -9,12 +9,12 @@ Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2
 
 * `term1`:
    * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
-      * `n2c()`: normal to canonic, retrieves de canonic term from a valid term of a namespace. See b1.
-      * `n2ns()`: normal to normals, retrieves de all synonyms of a valid term (of a namespace). See b1.
+      * `n2c()`: normal to canonic, retrieves the canonic term from a valid term of a namespace. See b1.
+      * `n2ns()`: normal to normals, retrieves the all synonyms of a valid term (of a namespace). See b1.
       * `search_tab()`: search by terms with specified option, returning nearst (similar) terms. See b2.
       * `search2c()`: as `search_tab()` but reducing the set to canonical terms. See b2.
       * `find()`: complete algorithm to "best search choice".
-      * `find2c()`: as `find()` but reducing to de set to canonical terms. See b3. [Compare with ElasticSearch at Wayta](https://github.com/ppKrauss/sql-term/wiki/Comparing-with-ElasticSearch).
+      * `find2c()`: as `find()` but reducing to the set to canonical terms. See b3. [Compare with ElasticSearch at Wayta](https://github.com/ppKrauss/sql-term/wiki/Comparing-with-ElasticSearch).
    * Utilities:
       * `term1.basemask()` see b1.
       * `nsget_nsopt2int()` see b2.
@@ -37,12 +37,9 @@ UML class diagram of *SCHEMA term1* tables and views, at [ini1.sql](src/ini1.sql
 ![uml class diagram](http://yuml.me/fe36a8da)
 
 ### Conventions ###
-The  public functions runs in a set of namespaces defined by the base-namespace, never in "all namespaces".
-Some functions can be config to target a specific namespace or  to specific languages.
+The  main public functions (resolver and search engines) runs with a defined  namespace, or with a set of namespaces that points to the same base-namespace.
 
-For each namespace the "canonic term" concept can change, from standardized to "most-popular" statistics. Semantic conflict or compromise between canonic term and its synonymous, are both valid, semantic analyses is out of scope of this project. The is_cult flag is an option to 
-
-For searching and resolving, use a base-namespace as target and adopt its mask with `term1.get_basemask(label)` for all searches and resolutions. To offer more specific language-target options in the interface, use `term1.get_baselangs(label)`.
+For each namespace the "canonic term" notion can change, from standardized to "most-popular" statistics. Semantic conflict or compromise between canonic term and its synonymous, are both valid; semantic analyses is out of scope of this project. The `is_cult` flag is an option to point that a term is expressed in the "cult form" (valid by dictionary), or not. The `is_suspect` flag  to flag "suspected as invalid" terms, with informed "suspect cause" stored in its JSON `jinfo`. Any other original information can be stored at `jinfo`, but only the standard JSON fields will be retrieved in the framework functions.
 
 ## PREPARE ##
 ```
