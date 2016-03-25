@@ -487,9 +487,12 @@ CREATE FUNCTION term1.search2c_tab(
 		true::boolean as is_canonic, 	-- all are canonic
 		NULL::int as fk_canonic,  	-- all are null
 		jsonb_build_object( 'sc_func',max(s.jetc->>'sc_func'), 'synonyms_count', count(*) )
-	FROM term1.search_tab($1) s LEFT JOIN term1.term_canonic c ON c.id=s.fk_canonic  -- certo  é RIGHT!
+	FROM term1.search_tab(term_lib.jparams($1) || jsonb_build_object('lim',NULL)) s   
+	     LEFT JOIN term1.term_canonic c 
+	     ON c.id=s.fk_canonic
 	GROUP BY cterm
-	ORDER BY score DESC, cterm;
+	ORDER BY score DESC, cterm
+	LIMIT (term_lib.jparams($1,jsonb_build_object('lim',NULL))->>'lim')::int
 $f$ LANGUAGE SQL IMMUTABLE;
 
 
