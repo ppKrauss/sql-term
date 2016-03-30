@@ -11,7 +11,7 @@
 // // // //
 // CONFIGS:
 $PG_USER = 'postgres';   // or see use of terminal user by http://stackoverflow.com/a/17725036/287948
-$PG_PW   = 'pp@123456';  // (or include secure/configs.php)
+$PG_PW   = 'xxxx';  // (or include secure/configs.php)
 $dsn="pgsql:dbname=postgres;host=localhost";
 
 
