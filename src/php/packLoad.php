@@ -11,9 +11,10 @@
 // // // //
 // CONFIGS:
 $PG_USER = 'postgres';   // or see use of terminal user by http://stackoverflow.com/a/17725036/287948
-$PG_PW   = 'xxxx';  // (or include secure/configs.php)
-$dsn="pgsql:dbname=postgres;host=localhost";
-
+$PG_PW   = 'pp@123456';  // (or include secure/configs.php)
+$databaseName = 'postgres';   // database
+$dsn        = "pgsql:dbname=$databaseName;host=localhost";
+$dbTerminal = "psql -h localhost -U $PG_USER  -W $databaseName";  // (for assert dump) no way to send $PG_PW?
 
 // // //
 // INI
@@ -31,14 +32,26 @@ $db = new pdo($dsn,$PG_USER,$PG_PW);
  */
 function sql_prepare($INI,$MSG='',$basePath='',$do=true) {
 	global $db;
+	global $dbTerminal;
 	$time_start = microtime(true);
 	$affected = 0;
 	if ($do) {
 		print "\n --- BEGIN SQL SCRIPTS ".($MSG? ": $MSG": '')." \n";
-		foreach($INI as $sql) if (preg_match("/^::([^\n]+\.sql)\$/",$sql,$m))
-				$affected += sql_exec($db, file_get_contents("$basePath/$m[1]"), "\n\t... running script from file");
+		foreach($INI as $sql)
+			if (preg_match("/^::assert:([^\n]+\.sql)\$/",$sql,$m)) {   // assert file
+				print "\n\t... running assert $m[1]...";
+				$file = "$basePath/$m[1]";
+				$out = shell_exec("$dbTerminal < $file");
+				$cmpfile = preg_replace('/\.sql$/','.dump.txt',$file);
+				if (file_get_contents($cmpfile)!=$out)
+					die("\n--- ASSERT ERROR ON $file ----\n\n(((BEGIN DEBUG:\n$out\nEND DEBUG)))\n\n");
+				else
+					print " ok!";
+			} elseif (preg_match("/^::([^\n]+\.sql)\$/",$sql,$m))  // normal file
+					$affected += sql_exec($db, file_get_contents("$basePath/$m[1]"), "\n\t... running script from file");
 			else
-				$affected += sql_exec($db, $sql, "\n\t... running script");
+					$affected += sql_exec($db, $sql, "\n\t... running script");
+
 		$time_end = microtime(true);
 		$execution_time = round($time_end - $time_start,2);
 		print "\n --- END SCRIPTS, SUCESS ($affected rows affected on initialization) spending $execution_time seconds\n";
@@ -136,7 +149,7 @@ function resourceLoad_run($basePath,$items,$MSG='',$jfieldName='jinfo'){
  *		file, sep, fields_sql, fields_json, fields_json_types
  *   )
  */
-function unpack_datapackage($folder,$dftSEP=',') {
+function unpack_datapackage($folder,$dftSEP=',',$prefURL=false) {
 	$p = "$folder/datapackage.json";
 	if (!file_exists($p))
 		die("\n\t-- ERROR: check folder ($folder) or add datapackage.json");
@@ -153,7 +166,7 @@ function unpack_datapackage($folder,$dftSEP=',') {
 			list($r['fields_sql'],$r['fields_json'],$r['fields_json_types']) = fields_to_parts($pack['schema']['fields'],false,true);
 		else
 			die("\n\t -- ERROR at datapackage.json: no schema/fields in $name\n");
-		$r['file'] = realpath("$folder/$rpath");
+		$r['file'] = ((!$rpath || $prefURL) && isset($pack['url']))? $pack['url']: realpath("$folder/$rpath");
 		$ret[$name] = $r;
 	  }
 	return $ret;
@@ -203,7 +216,7 @@ function fields_to_parts($fields,$only_names=true,$useType=false) {
 /////////////////
 // ERROR HANDLING
 
-function sql_exec(PDO $db,$sql,$msg="") {
+function sql_exec(PDO $db,$sql,$msg="", $showAffect=true) {
     if ($msg) print $msg;
     $affected = $db->exec($sql);  // integer?
     if ($affected === false) {
@@ -213,41 +226,10 @@ function sql_exec(PDO $db,$sql,$msg="") {
         } else
 	    die("\n--ERRO AO RODAR SQL: \n---------\n".substr(str_replace("\n","\n\t",$sql),0,300)."\n-----------\n".implode(':',$err)."\n");
     }
+		if ($showAffect) print " ($affected affected)";
     return $affected;
 }
 
-/**
- * POST/GET checker
- */
-function checkrequest(&$x,$name,&$bool=NULL) {
-	if (isset($_REQUEST[$name])) {
-		$x = $_REQUEST[$name];
-		unset($_REQUEST[$name]);
-		$bool=true;
-		//if ($bool!==NULL) $bool=true;
-	}
-}
 
-/**
- * Like array_combine(list,$pair) but pair is optional and
- * value is the sum of values (default 1), or number of occurences.
- */
-function array_combine_sum($list,$pair=NULL) {
-	$ret = [];
-	foreach($list as $idx=>$x) {
-		$v = ($pair!==NULL)? $pair[$idx]: 1;
-		$x = trim($x);
-		if ($x>'') {if (isset($ret[$x])) $ret[$x] += $v; else $ret[$x]=$v;}
-	}
-	return $ret;
-}
-
-///////////////////
-
-function loadItem($name,$d,$projectInfo) {
-	$sql = $d[0];
-	list($file,$mode) = explode('::',$d[1]);
-	print "\n\t--- LOADING $name (=$projectInfo[name]) --- ## $d[1]\n\t$file - $mode\n";
-}
 
 ?>

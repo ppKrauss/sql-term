@@ -1,0 +1,11 @@
+=== tlib public functions: ==================================
+                     normalizeterm                      
+--------------------------------------------------------
+ test test0 , test , test2 , test2 , test3 , test4.test
+(1 registro)
+
+  multimetaphone  |  multimetaphone   
+------------------+-------------------
+ PRLLPP KTRT T MR | PRLLPPT&KTRT&T&MR
+(1 registro)
+
