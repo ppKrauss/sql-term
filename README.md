@@ -51,7 +51,7 @@ Illustrating by the PHP option:
 ```
 git clone https://github.com/ppKrauss/sql-term.git
 cd sql-term
-nano src/php/omLib.php # edit variables $PG_USER and $PG_PW
+nano src/php/packLoad.php # edit variables $PG_USER, $PG_PW and dsn
 php src/php/prepare.php
 ```
 The default is to prepare `term1`, edit *$sqlMode* (at `prepare.php`) to prepare term0 or term2 modes.
