@@ -46,17 +46,17 @@ resourceLoad_run(
 	$basePath
 	,[ // itens of each resource defined in the datapackage.
 		'test'=>[
-				['prepare_auto', "tlib.tmp_test"],
-			],
-	  'normalized_aff'=>[
+			['prepare_auto', "tlib.tmp_test"],
+		],
+		'normalized_aff'=>[
 			['prepare_jsonb', "tlib.tmp_waytaff"],  //  term,jinfo
-	  ],
+		],
 		'normalized_country'=>[
 			['prepare_jsonb', "tlib.tmp_waytacountry"],  //  term,jinfo
-	  ],
+		],
 		'country-codes'=>[
 			['prepare_jsonb', "tlib.tmp_codes"],  //  term,jinfo
-	  ],
+		],
 	 ]
 	, "(MODE$sqlMode)"
 );
@@ -64,12 +64,16 @@ resourceLoad_run(
 sql_prepare(
 	[ // after load, upsert main table and run final update script
 		"SELECT tStore.upsert(term, tlib.nsget_nsid('test')) FROM tlib.tmp_test;"
-	 ,"SELECT tStore.upsert(term, tlib.nsget_nsid('wayta-pt'), jinfo, false) FROM tlib.tmp_waytaff"
-		 // 43050 itens, 41795 normalized, 31589 canonic, mix of portuguese and english.
-	 ,"DROP TABLE tlib.tmp_test; DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
-	 ,"::src/sql_mode$sqlMode/step4_finalUpdates.sql"  // UPDATES and data adaptations
-	 ,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes;"  // used, can drop it.
-	 // ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
+		 ,"DROP TABLE tlib.tmp_test;"  // used, can drop it.
+
+		 ,"::src/sql_mode$sqlMode/nsCountry_build.sql" 	// UPDATES and data adaptations
+		 ,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes"  // used, can drop it.
+
+// script causou loop!  faltam mais travas ou revisaõ
+		//,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
+		//,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
+
+		 // ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
 	]
 	,"SQL FINALIZATION"
 	,$basePath

@@ -156,7 +156,7 @@ CREATE FUNCTION tstore.upsert(
 	p_ns int,                  -- 2. exact ns (not a mask?)
 	p_info JSONB DEFAULT NULL, -- 3. all data in jsonb
 	p_iscanonic boolean DEFAULT false,  -- 4.
-  p_fkcanonic int DEFAULT NULL        -- 5.
+	p_fkcanonic int DEFAULT NULL        -- 5.
 ) RETURNS integer AS $f$
 DECLARE
   q_id  int;
