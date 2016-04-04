@@ -85,7 +85,7 @@ sql_prepare(
 		,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes"  // used, can drop it.
 
 		,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
-		//,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
+		,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
 
 		// ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
 	]

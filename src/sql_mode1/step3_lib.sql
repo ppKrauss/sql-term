@@ -36,6 +36,8 @@ $f$ LANGUAGE SQL IMMUTABLE;
 CREATE FUNCTION tlib.nsget_nsid(text) RETURNS int AS $f$ SELECT nsid FROM tstore.ns WHERE label=$1; $f$ LANGUAGE SQL IMMUTABLE;
 CREATE FUNCTION tlib.nsget_nsid(int) RETURNS int AS $f$ SELECT nsid FROM tstore.ns WHERE nscount=$1::smallint; $f$ LANGUAGE SQL IMMUTABLE;
 
+CREATE FUNCTION tlib.nsid2label(int) RETURNS text AS $f$ SELECT label FROM tstore.ns WHERE nsid=$1; $f$ LANGUAGE SQL IMMUTABLE;
+
 CREATE FUNCTION tlib.nsget_conf(int,boolean DEFAULT true) RETURNS regconfig AS $f$
 	--
 	-- Namespace language by its nscount (or nsid when $2 false)

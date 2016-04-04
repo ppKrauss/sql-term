@@ -155,8 +155,10 @@ CREATE FUNCTION tstore.upsert(
 	p_name text,               -- 1. term
 	p_ns int,                  -- 2. exact ns (not a mask?)
 	p_info JSONB DEFAULT NULL, -- 3. all data in jsonb
-	p_iscanonic boolean DEFAULT false,  -- 4.
-	p_fkcanonic int DEFAULT NULL        -- 5.
+	p_iscanonic boolean DEFAULT false,  	-- 4. is canonic
+	p_fkcanonic int DEFAULT NULL,     	-- 5. link
+	p_issuspect boolean DEFAULT false, 	-- 6. is suspect, ops default proprio
+	p_iscult boolean DEFAULT NULL 		-- 7. is cult, ops default proprio
 ) RETURNS integer AS $f$
 DECLARE
   q_id  int;
@@ -180,14 +182,15 @@ BEGIN
 			UPDATE tstore.term
 			SET  jinfo      = CASE WHEN p_info IS NULL THEN jinfo WHEN jinfo IS NULL THEN p_info ELSE jinfo||p_info END, 
 			     fk_canonic = CASE WHEN p_iscanonic THEN NULL ELSE p_fkcanonic END
+				-- is_suspect?
 			WHERE id = q_id; -- AND NOT(is_canonic);  -- salvaguarda para não remover canonicos
 			-- IF no_affected THEN q_id:= NULL;
 		ELSE 
 			q_id:= NULL;
 		END IF; -- else do nothing
 	ELSE -- INSERT
-		INSERT INTO tstore.term (fk_ns, term, jinfo, is_canonic,fk_canonic)
-		VALUES (p_ns, p_name, p_info, p_iscanonic, p_fkcanonic)
+		INSERT INTO tstore.term (fk_ns, term, jinfo, is_canonic,fk_canonic,is_suspect,is_cult)
+		VALUES (p_ns, p_name, p_info, p_iscanonic, p_fkcanonic,p_issuspect,p_iscult)
 		RETURNING id INTO q_id;
 	END IF;
 	RETURN q_id;
