@@ -4,81 +4,82 @@
 --- NAMESPACE "WAYTA*", preparing and building from sources.
 ---  ---  ---  ---  ---
 
--- FALTA simplificar para ir inserindo direto, sem tantos updates
 
 --
--- Insert all terms as non-canonic.
+-- Insert inferred acronyms (one-word short length terms) into wayta-code namespace.
 -- 
-SELECT tStore.upsert(term, tlib.nsget_nsid('wayta-pt'), jinfo, false) 
+SELECT tStore.upsert(term, tlib.nsget_nsid('wayta-code'), jinfo, false) 
 FROM tlib.tmp_waytaff
-; -- 43050 itens, 41795 normalized, 31589 canonic, mix of portuguese and english.
+WHERE char_length(term)<15 AND position(' ' IN term)=0
+; -- ~520 rows
+
+
+--
+-- Insert inferred English terms into wayta-en namespace.
+-- 
+SELECT tStore.upsert(term, tlib.nsget_nsid('wayta-en'), jinfo, false) 
+FROM tlib.tmp_waytaff
+WHERE to_tsvector('simple',term) @@ to_tsquery('simple',
+	'university|of|the|school|institute|technology|american|community|college|center|summit|system|health|sciences'
+); -- ~9000 rows
+
+--
+-- Insert inferred Spanish terms into wayta-es namespace.
+-- 
+SELECT tStore.upsert(term, tlib.nsget_nsid('wayta-es'), jinfo, false) 
+FROM tlib.tmp_waytaff
+WHERE to_tsvector('simple',term) @@ to_tsquery('simple', 'universidad|del') -- ~3100
+      OR lower(jinfo->>'country') IN ('spain','mexico', 'cuba', 'colombia', 'venezuela', 'uruguay', 'peru')  -- ~4000
+;
+
+--
+-- Set as canonic all that was a form.
+-- 
+WITH uforms AS (
+	SELECT DISTINCT  tlib.normalizeterm(jinfo->>'form') AS form
+	FROM  tlib.tmp_waytaff
+) UPDATE tstore.term 
+  SET    is_canonic = true
+  FROM uforms 
+  WHERE (fk_ns&tlib.basemask('wayta-pt'))::boolean AND uforms.form=term.term
+; -- ~11300 rows
+
+
+--
+-- Insert (with no extra info) as canonic portuguese all other forms.
+-- 
+WITH uforms AS (
+	SELECT DISTINCT  tlib.normalizeterm(jinfo->>'form') AS form
+	FROM  tlib.tmp_waytaff
+	WHERE  tlib.normalizeterm(jinfo->>'form')!=tlib.normalizeterm(term)
+) SELECT tStore.upsert(form, tlib.nsget_nsid('wayta-pt'), NULL, true) 
+  FROM uforms
+  WHERE form NOT IN (SELECT term FROM tstore.term WHERE (fk_ns&tlib.basemask('wayta-pt'))::boolean)
+; -- ~1100 rows
+
+--
+-- Insert (with JSON) as canonic portuguese all other forms.
+-- 
+WITH uforms AS (
+	SELECT  tlib.normalizeterm(jinfo->>'form') AS form, jinfo
+	FROM  tlib.tmp_waytaff
+
+) SELECT tStore.upsert(form, tlib.nsget_nsid('wayta-pt'), jinfo, true) 
+  FROM uforms
+  WHERE form NOT IN (SELECT term FROM tstore.term WHERE (fk_ns&tlib.basemask('wayta-pt'))::boolean)
+; -- ~19000 rows
 
 DELETE from tStore.term where term like '% , , %'; -- correcting little bug
 
 --
--- Adds residual canonic terms, that occurs only as Wayta's form.
+-- Link normal terms to its canonics.
 -- 
-WITH uforms AS (
-	SELECT DISTINCT  jinfo->>'form' AS form
-	FROM tStore.term
-	WHERE  fk_ns=tlib.nsget_nsid('wayta-pt') AND jinfo->>'form' IS NOT NULL
-) SELECT  -- faz apenas insert condicional, o null força não-uso de update
-	tstore.upsert( form , tlib.nsget_nsid('wayta-pt'), NULL, true, NULL::int)  as  id
-	FROM uforms
-	WHERE form>''
-; -- ~31400 rows
+UPDATE tstore.term 
+SET fk_canonic = c.id 
+FROM tstore.term_canonic as c
+WHERE (term.fk_ns&tlib.basemask('wayta-pt'))::boolean
+      AND NOT(term.is_canonic) AND term.fk_canonic IS NULL AND c.id!=term.id 
+      AND tlib.normalizeterm(term.jinfo->>'form')=c.term
+;  -- ~4000 rows
 
---
--- Set canonic terms.
--- 
-UPDATE tStore.term
-SET    is_canonic=true
-FROM (
-	SELECT DISTINCT  tlib.normalizeterm( jinfo->>'form' ) AS nform
-	FROM tStore.term
-	WHERE fk_ns=tlib.nsget_nsid('wayta-pt') AND jinfo->>'form' IS NOT NULL
-) t
-WHERE term.fk_ns=tlib.nsget_nsid('wayta-pt') AND t.nform=term.term
-; --31589 rows
-
---
--- Set link-to-its-canonic in normal terms.
--- 
-UPDATE tStore.term
-SET    fk_canonic=t.cid
-FROM (
-	SELECT id as cid, term as cterm
-	FROM tStore.term
-	WHERE fk_ns=tlib.nsget_nsid('wayta-pt') AND is_canonic
-) t
-WHERE NOT(term.is_canonic) AND term.fk_ns=tlib.nsget_nsid('wayta-pt')
-      AND t.cterm=tlib.normalizeterm( term.jinfo->>'form' )
-; --9567 rows, marcou os termos normais com ponteiro para respectivo canônico; delete e fk_canonic
-
---
--- Change namespace (to wayta-code) of one-word short length terms. (inferred acronyms)
--- 
-UPDATE tStore.term
-SET fk_ns=tlib.nsget_nsid('wayta-code')
-WHERE fk_ns=tlib.nsget_nsid('wayta-pt') AND char_length(term)<20 AND position(' ' IN term)=0
-; -- ~520 rows
-
---
--- Change namespace (to wayta-en) of inferred English terms.
--- 
-UPDATE tStore.term
-SET fk_ns=tlib.nsget_nsid('wayta-en')
-WHERE (fk_ns=tlib.nsget_nsid('wayta-pt')) AND to_tsvector('simple',term) @@ to_tsquery('simple',
-	'university|of|the|school|institute|technology|american|community|college|center|summit|system|health|sciences'
-); -- ~9000
-
---
--- Change namespace (to wayta-es) of inferred Spanish terms.
--- 
-UPDATE tStore.term
-SET fk_ns=tlib.nsget_nsid('wayta-es')
-WHERE (fk_ns=tlib.nsget_nsid('wayta-pt')) AND (
-	to_tsvector('simple',term) @@ to_tsquery('simple', 'universidad|del') -- 3088
-	OR lower(jinfo->>'country') IN ('spain','mexico', 'cuba', 'colombia', 'venezuela', 'uruguay', 'peru')  -- more ~4000
-);
 

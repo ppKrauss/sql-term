@@ -159,8 +159,8 @@ CREATE FUNCTION tlib.normalizeterm(
 ) RETURNS text AS $f$
   SELECT  substring(
 	LOWER(TRIM( regexp_replace(  -- for review: regex(regex()) for ` , , ` remove
-		trim(regexp_replace($1,E'[\\+/,;:\\(\\)\\{\\}\\[\\]="\\s]*[\\+/,;:\\(\\)\\{\\}\\[\\]="]+[\\+/,;:\\(\\)\\{\\}\\[\\]="\\s]*|\\s+[–\\-]\\s+',' , ', 'g'),' ,'),   -- s*ps*|s-s
-		E'[\\s;\\|"]+[\\.\'][\\s;\\|"]+|[\\s;\\|"]+',    -- s.s|s
+		trim(regexp_replace($1,E'[\\n\\r \\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*[\\+/,;:\\(\\)\\{\\}\\[\\]="]+[\\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*|[\\s ]+[–\\-][\\s ]+',' , ', 'g'),' ,'),   -- s*ps*|s-s
+		E'[\\s ;\\|"]+[\\.\'][\\s ;\\|"]+|[\\s ;\\|"]+',    -- s.s|s
 		$2,
 		'g'
 	), $2 )),

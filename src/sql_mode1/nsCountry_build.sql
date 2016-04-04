@@ -27,11 +27,22 @@ SELECT tStore.upsert(
 )
 FROM tlib.tmp_codes;
 
+
+SELECT tStore.upsert(
+	name,			-- english name of country 
+	tlib.nsget_nsid('country-en'),	-- into country-en namespace
+	jinfo,
+	false,		-- not iscanonic
+	tlib.N2id(jinfo->>'iso3166_1_alpha_2', tlib.nsget_nsid('country-code'), false)  -- fk_canonic
+)
+FROM tlib.tmp_codes;
+
+
 --
 -- Insert English names as non-canonics
 --
 SELECT tStore.upsert(
-	jinfo->>'name',			-- english name of country 
+	jinfo->>'name',			-- english name2 of country 
 	tlib.nsget_nsid('country-en'),	-- into country-en namespace
 	jinfo,
 	false,		-- not iscanonic

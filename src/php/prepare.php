@@ -1,5 +1,19 @@
 <?php
 /**
+
+REUNIAO CGM-SP 1/abril com Guilherme, 14h às 15:30
+
+* identificadores de atos administrativos e demais documentos publicados pelo Diário Oficial.
+  Ficou convencionado que o Diário Livre terá além da busca um "resolvedor de URN LEX" para acesso direto,
+  tal como o portal LexML
+
+* codigos: CEP e CNPJ já são reconhecidos.
+
+* Terminologia: extração metadados pode ser baseada na gestão de terminologias. A alimentação vai demandar certa sistemática.
+
+* portal eNegocios .. usa mascara
+.. MEI ... 
+
  * Load CSV data (defined in datapackage.jsob) to the SQL database.
  * php src/php/prepare.php
  */
@@ -21,7 +35,8 @@ $sqlIni   = [ // prepare namespaces
 	,"::src/sql_mode$sqlMode/step3_lib.sql"
 
 	,"SELECT tStore.ns_upsert('test','pt','Test. Portuguese.')"
-	,"SELECT tStore.ns_upsert('wayta-pt','pt','Wayta SciELO reference-dataset, Portuguese.')"
+
+	,"SELECT tStore.ns_upsert('wayta-pt','pt','Wayta SciELO reference-dataset, Portuguese.',true, '{\"group_unique\":true}'::jsonb)"
 	,"SELECT tStore.ns_upsert('wayta-code','  ','Wayta SciELO reference-dataset, no-lang')"
 	,"SELECT tStore.ns_upsert('wayta-en','en','Wayta SciELO reference-dataset, English.')"
 	,"SELECT tStore.ns_upsert('wayta-es','es','Wayta SciELO reference-dataset, Spanish.')"
@@ -64,16 +79,15 @@ resourceLoad_run(
 sql_prepare(
 	[ // after load, upsert main table and run final update script
 		"SELECT tStore.upsert(term, tlib.nsget_nsid('test')) FROM tlib.tmp_test;"
-		 ,"DROP TABLE tlib.tmp_test;"  // used, can drop it.
+		,"DROP TABLE tlib.tmp_test;"  // used, can drop it.
 
-		 ,"::src/sql_mode$sqlMode/nsCountry_build.sql" 	// UPDATES and data adaptations
-		 ,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes"  // used, can drop it.
+		,"::src/sql_mode$sqlMode/nsCountry_build.sql" 	// UPDATES and data adaptations
+		,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes"  // used, can drop it.
 
-// script causou loop!  faltam mais travas ou revisaõ
-		//,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
+		,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
 		//,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
 
-		 // ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
+		// ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
 	]
 	,"SQL FINALIZATION"
 	,$basePath

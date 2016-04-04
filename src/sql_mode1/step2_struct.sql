@@ -162,24 +162,28 @@ DECLARE
   q_id  int;
   q_uniquegroup boolean;
 BEGIN
+	SELECT COALESCE((jinfo->>'group_unique')::boolean, false) INTO q_uniquegroup
+		FROM tstore.ns
+		WHERE nsid=(SELECT CASE WHEN is_base THEN nsid ELSE fk_partOf END  FROM tstore.ns WHERE nsid=p_ns);
+
 	p_name := tlib.normalizeterm(p_name);
-
-  SELECT COALESCE((jinfo->>'group_unique')::boolean, false) INTO q_uniquegroup
-  FROM tstore.ns
-  WHERE nsid=(SELECT CASE WHEN is_base THEN nsid ELSE fk_partOf END  FROM tstore.ns WHERE nsid=p_ns);
-
 	SELECT id INTO q_id
-  FROM tstore.term
-  WHERE term=p_name AND CASE WHEN q_uniquegroup THEN (fk_ns&tlib.basemask(p_ns))::boolean ELSE fk_ns=p_ns END;
+		FROM tstore.term
+		WHERE
+		 CASE WHEN q_uniquegroup THEN (fk_ns&tlib.basemask(p_ns))::boolean ELSE fk_ns=p_ns END
+		 AND term=p_name;
 
-	IF p_name='' OR p_name IS NULL OR p_ns IS NULL THEN
+	IF p_name='' OR p_name IS NULL OR p_ns IS NULL OR p_ns<1 THEN
 		q_id:=NULL;
 	ELSIF q_id IS NOT NULL THEN -- CONDITIONAL UPDATE  (deixar para update explicito o resto)
-		IF p_info IS NOT NULL THEN
+		IF q_id!=p_fkcanonic  THEN -- enforce coherence?  AND fk_ns=p_ns
 			UPDATE tstore.term
-			SET  fk_ns=p_ns,  -- ?can change by upsert?
-			     jinfo=p_info, fk_canonic=p_fkcanonic -- modified=now()
-			WHERE id = q_id AND NOT(is_canonic);  -- salvaguarda para não remover canonicos
+			SET  jinfo      = CASE WHEN p_info IS NULL THEN jinfo WHEN jinfo IS NULL THEN p_info ELSE jinfo||p_info END, 
+			     fk_canonic = CASE WHEN p_iscanonic THEN NULL ELSE p_fkcanonic END
+			WHERE id = q_id; -- AND NOT(is_canonic);  -- salvaguarda para não remover canonicos
+			-- IF no_affected THEN q_id:= NULL;
+		ELSE 
+			q_id:= NULL;
 		END IF; -- else do nothing
 	ELSE -- INSERT
 		INSERT INTO tstore.term (fk_ns, term, jinfo, is_canonic,fk_canonic)
@@ -217,3 +221,4 @@ BEGIN
 	RETURN r_id;
 END;
 $f$ LANGUAGE PLpgSQL;
+
