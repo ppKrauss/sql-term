@@ -347,6 +347,8 @@ $f$ LANGUAGE SQL IMMUTABLE;
 CREATE FUNCTION tlib.lang2regconf(text) RETURNS regconfig AS $f$
 	--
 	-- Convention to convert iso2 into regconfig for indexing words. See kx_regconf.
-	--
-	SELECT  (('{"pt":"portuguese","en":"english","es":"spanish","":"simple","  ":"simple","fr":"french"}'::jsonb)->>$1)::regconfig
+	-- See SELECT * FROM pg_catalog.pg_ts_config
+	SELECT  (('{"pt":"portuguese","en":"english","es":"spanish","":"simple","  ":"simple","fr":"french","it":"italian","de":"german","nl":"dutch"}'::jsonb)->>$1)::regconfig
 $f$ LANGUAGE SQL IMMUTABLE;
+
+

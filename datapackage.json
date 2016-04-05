@@ -6,7 +6,11 @@
      {
       "name":"Wayta, online API for support of the SciELO Publishing Schema",
       "web": "https://github.com/scieloorg/wayta"
-     }
+    },
+    {
+      "name":"UNICODE CLDR, core, territory",
+      "web": "http://www.unicode.org/Public/cldr"
+    }
    ],
   "licenses": [
     {
@@ -203,6 +207,52 @@
           {
             "name": "is_independent",
             "description": "Country status, based on the CIA World Factbook",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name":"country-names-multilang",
+      "path": "data/country-names-multilang.csv",
+      "schema": {
+        "fields": [
+          {
+            "name": "iso_code",
+            "role": "pk",
+            "description": "Country code ISO 2-letter",
+            "type": "string"
+          },
+          {
+            "name": "af",
+            "type": "string"
+          },
+          {
+            "name": "en",
+            "type": "string"
+          },
+          {
+            "name": "es",
+            "type": "string"
+          },
+          {
+            "name": "de",
+            "type": "string"
+          },
+          {
+            "name": "fr",
+            "type": "string"
+          },
+          {
+            "name": "it",
+            "type": "string"
+          },
+          {
+            "name": "nl",
+            "type": "string"
+          },
+          {
+            "name": "pt",
             "type": "string"
           }
         ]

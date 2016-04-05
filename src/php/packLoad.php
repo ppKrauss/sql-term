@@ -134,7 +134,7 @@ function resourceLoad_run($basePath,$items,$MSG='',$jfieldName='jinfo'){
 				print "\n\tEND PROCESSING (acum. $affected rows affected) spending $execution_time seconds.\n";
 			} // for if
 		else
-			die("\n\t-- BUG: items requerindo '$resName' inexistente no Pack");
+			die("\n\t-- BUG: items requerindo '$resName' inexistente no Pack\n");
 			//var_dump($packs);
 	}
 

@@ -180,12 +180,13 @@ BEGIN
 	ELSIF q_id IS NOT NULL THEN -- CONDITIONAL UPDATE  (deixar para update explicito o resto)
 		IF q_id!=p_fkcanonic  THEN -- enforce coherence?  AND fk_ns=p_ns
 			UPDATE tstore.term
-			SET  jinfo      = CASE WHEN p_info IS NULL THEN jinfo WHEN jinfo IS NULL THEN p_info ELSE jinfo||p_info END, 
+			SET  --is_canonic=p_iscanonic,
+           jinfo      = CASE WHEN p_info IS NULL THEN jinfo WHEN jinfo IS NULL THEN p_info ELSE jinfo||p_info END,
 			     fk_canonic = CASE WHEN p_iscanonic THEN NULL ELSE p_fkcanonic END
 				-- is_suspect?
-			WHERE id = q_id; -- AND NOT(is_canonic);  -- salvaguarda para não remover canonicos
+			WHERE id = q_id       AND NOT(is_canonic);  -- salvaguarda para não remover canonicos
 			-- IF no_affected THEN q_id:= NULL;
-		ELSE 
+		ELSE
 			q_id:= NULL;
 		END IF; -- else do nothing
 	ELSE -- INSERT
@@ -224,4 +225,3 @@ BEGIN
 	RETURN r_id;
 END;
 $f$ LANGUAGE PLpgSQL;
-

@@ -1,19 +1,5 @@
 <?php
 /**
-
-REUNIAO CGM-SP 1/abril com Guilherme, 14h às 15:30
-
-* identificadores de atos administrativos e demais documentos publicados pelo Diário Oficial.
-  Ficou convencionado que o Diário Livre terá além da busca um "resolvedor de URN LEX" para acesso direto,
-  tal como o portal LexML
-
-* codigos: CEP e CNPJ já são reconhecidos.
-
-* Terminologia: extração metadados pode ser baseada na gestão de terminologias. A alimentação vai demandar certa sistemática.
-
-* portal eNegocios .. usa mascara
-.. MEI ... 
-
  * Load CSV data (defined in datapackage.jsob) to the SQL database.
  * php src/php/prepare.php
  */
@@ -47,6 +33,9 @@ $sqlIni   = [ // prepare namespaces
 	,"SELECT tStore.ns_upsert('country-fr','fr','Country names reference-dataset, French.')"
 	,"SELECT tStore.ns_upsert('country-es','es','Country names reference-dataset, Spanish.')"
 	,"SELECT tStore.ns_upsert('country-en','en','Country names reference-dataset, English.')"
+	,"SELECT tStore.ns_upsert('country-de','de','Country names reference-dataset, Deutsch.')"
+	,"SELECT tStore.ns_upsert('country-it','it','Country names reference-dataset, Italian.')"
+	,"SELECT tStore.ns_upsert('country-nl','nl','Country names reference-dataset, Dutch.')"
 	,"UPDATE tStore.ns SET fk_partOf=tlib.nsget_nsid('country-code') WHERE label!='country-code' AND left(label,7)='country'"
 ];
 
@@ -72,6 +61,9 @@ resourceLoad_run(
 		'country-codes'=>[
 			['prepare_jsonb', "tlib.tmp_codes"],  //  term,jinfo
 		],
+		'country-names-multilang'=>[
+			['prepare_jsonb', "tlib.tmp_codes2"],  //  term,jinfo
+		],
 	 ]
 	, "(MODE$sqlMode)"
 );
@@ -82,10 +74,23 @@ sql_prepare(
 		,"DROP TABLE tlib.tmp_test;"  // used, can drop it.
 
 		,"::src/sql_mode$sqlMode/nsCountry_build.sql" 	// UPDATES and data adaptations
-		,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes"  // used, can drop it.
+		,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes; DROP TABLE tlib.tmp_codes2;"  // used, can drop it.
+,"DROP TABLE IF EXISTS tmp_xx; CREATE TABLE tmp_xx AS SELECT  c.term as canonic,  t.term, tlib.nsid2label(t.fk_ns) as nslabel, t.is_cult
+from tstore.term t INNER JOIN tstore.term_canonic c ON c.id=t.fk_canonic
+where t.is_suspect AND t.fk_ns>32 and t.kx_metaphone IN (
+	SELECT kx_metaphone
+	from tstore.term
+	where fk_ns>32
+	GROUP BY kx_metaphone
+	HAVING sum(COALESCE(is_suspect,true)::int)>0  AND count(*)>1
+	order by 1
+) ORDER BY c.term, t.term;
+"
+,"COPY tmp_xx TO '$basePath/data/tmp_country-humanCheck.csv' DELIMITER ',' CSV HEADER;"
 
 		,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
 		,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
+
 
 		// ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
 	]
