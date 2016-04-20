@@ -9,9 +9,11 @@
 
 
 //CONFIGS:
+	$cpref = 'i'; // or '_' or ''
 	$fout_file = 'php://output';
 	$LANGS = ['af','en','es','de','fr','it','nl','pt'];  // check prepare.php and datapackage.json!
-	$dir= realpath(__DIR__.'/../../data/common/main'); // obtained from:
+	$dir= realpath(__DIR__.'/../../sandbox/common/main'); // obtained from:
+	// mkdir sandbox; cd sandbox
 	// wget -c http://www.unicode.org/Public/cldr/latest/core.zip
 	// unzip core.zip
 	// REMOVE all after this CSV generation. rm -r common
@@ -26,7 +28,7 @@ foreach(scandir($dir) as $file) if (  preg_match('/^(.+)\.xml$/',$file,$m)  && i
     foreach ( $xp->query('//territories/territory') as $tnode) {
 			$c = strtolower($tnode->getAttribute('type'));
 			if ($c!='001') {
-				if ((int) $c > 1) $c = "i$c";
+				if ((int) $c > 1) $c = $cpref.$c;
 				$LIN[$c][$lang] = $tnode->nodeValue;
 			}
 		}

@@ -10,11 +10,12 @@ WITH t AS (SELECT DISTINCT  jinfo->>'iso3166_1_alpha_2' as iso2 FROM tlib.tmp_co
 SELECT tStore.upsert(
 	iso2, 			-- the canonic term (a 2-letter ISO abbrev)
 	tlib.nsget_nsid('country-code'), -- into country-code namespace
-	'{"source":"tmp_codes"}'::jsonb,
+	NULL::jsonb,
 	true,			-- yes, is_canonic
 	NULL::int,		-- no fk_canonic
-	false,   -- is_suspect
-	NULL   -- is_cult (codes are non-words... but are standards)
+	false   -- is_suspect
+	,NULL   -- is_cult (codes are non-words... but are standards)
+	,'iso3166-1-alpha-2'::text
 ) FROM t;
 
 --
@@ -23,11 +24,12 @@ SELECT tStore.upsert(
 SELECT tStore.upsert(
 	jinfo->>'iso3166_1_alpha_3',     -- iso3
 	tlib.nsget_nsid('country-code'), -- into country-code namespace
-	'{"source":"tmp_codes"}'::jsonb,
+	NULL::jsonb,
 	false,		-- not iscanonic
-	tlib.N2id(jinfo->>'iso3166_1_alpha_2', tlib.nsget_nsid('country-code'), false),  -- fk_canonic
-	false,   -- is_suspect
-	NULL   -- is_cult
+	tlib.N2id(jinfo->>'iso3166_1_alpha_2', tlib.nsget_nsid('country-code'), false)  -- fk_canonic
+	,false   -- is_suspect
+	,NULL   -- is_cult
+	,'iso3166-1-alpha-3'
 )
 FROM tlib.tmp_codes;
 
@@ -40,8 +42,9 @@ SELECT tStore.upsert(
 	'{"source":"tmp_codes"}'::jsonb,
 	false,		-- not iscanonic
 	tlib.N2id(jinfo->>'iso3166_1_alpha_2', tlib.nsget_nsid('country-code'), false),  -- fk_canonic
-	false,   -- is_suspect
-	true   -- is_cult
+	false   -- is_suspect
+	,true   -- is_cult
+	,'country-codes'::text
 )
 FROM tlib.tmp_codes;
 
@@ -55,13 +58,30 @@ SELECT tStore.upsert(
 	'{"source":"tmp_codes"}'::jsonb,
 	false,		-- not iscanonic
 	tlib.N2id(jinfo->>'iso3166_1_alpha_2', tlib.nsget_nsid('country-code'), false),  -- fk_canonic
-	false,   -- is_suspect
-	true   -- is_cult
+	false   -- is_suspect
+	,true   -- is_cult
+	,'country-codes'::text
 )
 FROM tlib.tmp_codes;
 
 
---- --- ---
+--- --- --- ---
+/*
+	-- no dataset, KEELING, malvinas e vaticano são opcionais entre parentesis.. Todavia Congo tem abrev (DRC) ou (RDC)
+	-- importante é remover na oficial ... excluir depois menos de 4 letras e palavra republic ou "republic of" sozinhas
+
+	--- A virgula estabelece separador 'do' 'de'  etc. assim como inversão de ordem.
+	SELECT *
+	FROM tstore.term
+	WHERE 	(fk_ns & tlib.basemask('country-code') & (~tlib.nsget_nsid('country-code')))::boolean -- ns mask
+		AND NOT(is_suspect)
+		AND fk_canonic IS NOT NULL -- equiv. AND NOT((NOT(is_canonic) AND fk_canonic  IS NULL))
+		AND char_length(term)>3
+	ORDER BY fk_ns, char_length(term) desc, term
+;
+
+*/
+-------------
 
 --
 -- Add more canonic names
@@ -69,11 +89,38 @@ FROM tlib.tmp_codes;
 SELECT tStore.upsert(
 	iso_code,
 	tlib.nsget_nsid('country-code'),
-	'{"source":"tmp_codes2"}'::jsonb,
+	NULL::jsonb,
 	true,		-- is canonic
 	NULL::int,		-- no fk_canonic
 	false  		-- is_suspect
 	,NULL  -- is cult
+	,'iso3166-1-alpha-2'::text
+)
+FROM tlib.tmp_codes2;
+
+
+--
+-- More non-canonic names (upsert ignore when same)
+--
+SELECT tStore.upsert(
+	regexp_replace(jinfo->>'en', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-en'),
+	NULL::jsonb, false,		-- not iscanonic
+	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
+	false  		-- is_suspect
+	,true  -- is cult
+	,'country-names-multilang'
+)
+FROM tlib.tmp_codes2;
+
+SELECT tStore.upsert(
+	regexp_replace(jinfo->>'fr', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-fr'),
+	NULL::jsonb, false,		-- not iscanonic
+	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
+	false  		-- is_suspect
+	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
@@ -81,71 +128,91 @@ FROM tlib.tmp_codes2;
 -- Add other non-canonic names
 --
 SELECT tStore.upsert(
-	jinfo->>'af', tlib.nsget_nsid('country-af'),
-	'{"source":"tmp_codes2"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'af', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-af'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
 SELECT tStore.upsert(
-	jinfo->>'es', tlib.nsget_nsid('country-es'),
-	'{"source":"tmp_codes2"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'es', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-es'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
 SELECT tStore.upsert(
-	jinfo->>'de', tlib.nsget_nsid('country-de'),
-	'{"source":"tmp_codes2"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'de', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-de'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
 SELECT tStore.upsert(
-	jinfo->>'it', tlib.nsget_nsid('country-it'),
-	'{"source":"tmp_codes2"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'it', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-it'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
 SELECT tStore.upsert(
-	jinfo->>'pt', tlib.nsget_nsid('country-pt'),
-	'{"source":"tmp_codes2-ptBR"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'pt', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-pt'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
 
 SELECT tStore.upsert(
-	jinfo->>'nl', tlib.nsget_nsid('country-nl'),
-	'{"source":"tmp_codes2"}'::jsonb, false,		-- not iscanonic
+	regexp_replace(jinfo->>'nl', '\s*\([^\)]+\)\s*', ' ', 'g'),
+	tlib.nsget_nsid('country-nl'),
+	NULL::jsonb, false,		-- not iscanonic
 	tlib.N2id(iso_code, tlib.nsget_nsid('country-code'), false),  -- fk_canonic
 	false  		-- is_suspect
 	,true  -- is cult
+	,'country-names-multilang'::text
 )
 FROM tlib.tmp_codes2;
-
 
 --- --- ---
-----
+--- --- ---
 
 --
 -- Insert inferred English names country-en namespace.
 --
-SELECT tStore.upsert(term, tlib.nsget_nsid('country-en'), jinfo, false)
+SELECT tStore.upsert(
+		term,
+		tlib.nsget_nsid('country-en'),
+		jinfo,
+		false,		-- not iscanonic
+		tlib.N2id(jinfo->>'iso2', tlib.nsget_nsid('country-code'), false)  -- fk_canonic
+		,true
+		,false
+		,'normalized_country'
+)
 FROM tlib.tmp_waytacountry
 WHERE to_tsvector('simple',term) @@ to_tsquery('simple',
 	'republic|of|the|island|islands'
-); -- ~..
+);
 
 --
 -- Add all other non-canonic names
@@ -153,10 +220,21 @@ WHERE to_tsvector('simple',term) @@ to_tsquery('simple',
 SELECT tStore.upsert(  -- mix pt and other langs
 	term,
 	tlib.nsget_nsid('country-pt'),
-	'{"source":"waytacountry-badText"}'::jsonb,
+	'{"quali":"badText"}'::jsonb,
 	false,		-- not iscanonic
-	tlib.N2id(jinfo->>'iso2', tlib.nsget_nsid('country-code'), false),  -- fk_canonic
-	true  		-- is_suspect
+	tlib.N2id(jinfo->>'iso2', tlib.nsget_nsid('country-code'), false)  -- fk_canonic
+	,true  		-- is_suspect
+	,false
+	,'normalized_country'
 )
 FROM tlib.tmp_waytacountry
 WHERE char_length(tlib.normalizeterm(term))>3; -- no codes
+
+--
+-- Minor corrections of suspects
+--
+UPDATE tstore.term
+SET is_cult=true, is_suspect=false
+WHERE term IN ('principado de andorra', 'timor leste', 'bósnia-herzegovina', 'camarões', 'república popular da china', 'barcelona', 'são cristóvão e névis', 'coréia do norte', 'coréia do sul', 'macedônia', 'papua nova guiné')
+;  -- was valids
+DELETE FROM tstore.term WHERE term IN ('bélgica.', 'cánada.' , 'republica de panamá.'); -- like '%.' not used

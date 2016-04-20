@@ -37,6 +37,7 @@ CREATE FUNCTION tlib.nsget_nsid(text) RETURNS int AS $f$ SELECT nsid FROM tstore
 CREATE FUNCTION tlib.nsget_nsid(int) RETURNS int AS $f$ SELECT nsid FROM tstore.ns WHERE nscount=$1::smallint; $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION tlib.nsid2label(int) RETURNS text AS $f$ SELECT label FROM tstore.ns WHERE nsid=$1; $f$ LANGUAGE SQL IMMUTABLE;
+CREATE FUNCTION tlib.nsid2lang(int) RETURNS text AS $f$ SELECT lang::text FROM tstore.ns WHERE nsid=$1; $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION tlib.nsget_conf(int,boolean DEFAULT true) RETURNS regconfig AS $f$
 	--
@@ -100,11 +101,13 @@ CREATE FUNCTION tlib.N2C_tab(
 	--
 	text,   		-- 1. valid term
 	int,     		-- 2. namespace MASK, ex. by tlib.basemask().
-	boolean DEFAULT true  	-- 3. exact (true) or apply normalization (false)
+	boolean DEFAULT true,  	-- 3. exact (true) or apply normalization (false)
+	int DEFAULT 1				-- 4. LIMIT  1, and ignore Id and fk_ns.
 ) RETURNS SETOF tstore.tab  AS $f$
 	SELECT id, fk_ns as nsid, term_canonic::text, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
 	FROM tstore.term_full
 	WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $3 THEN term=$1 ELSE term=tlib.normalizeterm($1) END
+	LIMIT $4  -- or array_agg(id,fk_ns)
 $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION tlib.N2C_tab(text,text,boolean DEFAULT true) RETURNS SETOF tstore.tab  AS $f$
@@ -158,9 +161,9 @@ $f$ LANGUAGE SQL IMMUTABLE;
 -- -- --
 -- N2Ns:
 
-CREATE FUNCTION tlib.N2Ns_tab(
+CREATE or replace FUNCTION tlib.N2Ns_tab(
 	--
-	-- Returns canonic and all the synonyms of a valid term (of a namespace).
+	-- Returns canonic (of any namespace) and all the synonyms of a valid term of a namespace/mask.
 	-- Ex. SELECT * FROM tlib.N2Ns_tab(' - puc-mg - ',4,NULL,false);
 	--
 	text,            	-- 1. valid term
@@ -168,21 +171,23 @@ CREATE FUNCTION tlib.N2Ns_tab(
 	int DEFAULT NULL,       -- 3. Limit
 	boolean DEFAULT true,	-- 4. exact (true) or apply normalization (false)
 	boolean DEFAULT true	-- 5. (non-used, enforcing sort) to sort by ns, term
--- FALTA LIMIT (e propagar demais funções)
 ) RETURNS SETOF tstore.tab AS $f$
-   -- TO DO: optimize (see explain) and simplify using tstore.term_full
-   SELECT t.id, t.fk_ns as nsid, t.term, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
-   FROM tstore.term t  INNER JOIN   (
-	SELECT CASE WHEN is_canonic THEN -- caso comum, mais de 60% sao canonicos
-			s.id
-		ELSE (SELECT id FROM tstore.term_canonic t WHERE t.id=s.fk_canonic) -- caso nao-canonico
-		END as canonic_id
-	   FROM tstore.term s
-	   WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $4 THEN term=$1 ELSE term=tlib.normalizeterm($1) END
-       ) c
-       ON t.id=c.canonic_id OR fk_canonic=c.canonic_id
-   ORDER BY t.fk_ns, t.term -- $5 future
-   LIMIT $3
+	-- TO DO: optimize (see explain) and simplify using tstore.term_full
+	WITH can AS (
+		SELECT CASE
+			  WHEN is_canonic THEN s.id -- commum case, mais de 60% sao canonicos
+			  ELSE (SELECT id FROM tstore.term_canonic t WHERE t.id=s.fk_canonic) -- caso nao-canonico
+			END as canonic_id
+		FROM tstore.term s
+		WHERE (fk_ns&$2)::boolean  AND  CASE WHEN $4 THEN term=$1 ELSE term=tlib.normalizeterm($1) END
+		LIMIT 1 -- danger, not works with homonyms
+	)
+	SELECT t.id, t.fk_ns as nsid, t.term, 100::int, is_canonic, fk_canonic, '{"sc_func":"exact"}'::jsonb
+	FROM tstore.term t, can
+	WHERE 	(t.id=can.canonic_id OR fk_canonic=can.canonic_id) -- link canonic
+		AND (t.is_canonic OR (t.fk_ns&$2)::boolean)  -- restriction to mask-namespace
+	ORDER BY t.fk_ns, t.term -- $5 future
+	LIMIT $3
 $f$ LANGUAGE SQL IMMUTABLE;
 
 CREATE FUNCTION tlib.N2Ns_tab(text,text,int DEFAULT NULL,boolean DEFAULT true,boolean DEFAULT true) RETURNS SETOF tstore.tab AS $f$
@@ -548,3 +553,103 @@ BEGIN
 	RETURN tlib.search2c( p || '{"op":"%"}'::jsonb );
 END;
 $f$ LANGUAGE PLpgSQL IMMUTABLE;
+
+
+-- -- -- -- -- -- -- --
+-- -- -- -- -- -- -- --
+
+CREATE FUNCTION tlib.export_j2regex1(
+	--
+	-- Export json for REGEX resolver type1
+	-- BUG: not preserving ORDER, use TAB (record) output! and _tab variations
+	--
+	p_nsbase text,
+	p_nsexclude text DEFAULT NULL,
+	p_outpairs boolean DEFAULT false,
+	p_use_suspect boolean DEFAULT true,
+	p_check_canoniclink boolean DEFAULT true,
+	p_use_length boolean DEFAULT true
+) RETURNS jsonb AS $f$
+SELECT jsonb_agg(jsonb_build_object(lang, list)) as jout  -- not jsonb for order preservation in p_outpairs=true
+FROM (
+	WITH items AS (
+		SELECT tlib.nsid2lang(fk_ns) as lang, term, fk_canonic
+		FROM tstore.term
+		WHERE 	(CASE WHEN p_nsexclude IS NULL
+							THEN fk_ns & tlib.basemask(p_nsbase)
+							ELSE fk_ns & tlib.basemask(p_nsbase) & (~tlib.nsget_nsid(p_nsexclude))
+							END
+			)::boolean -- ns mask
+			AND CASE WHEN p_use_suspect THEN NOT(is_suspect) ELSE  true END
+			AND CASE WHEN p_check_canoniclink THEN fk_canonic IS NOT NULL ELSE  true END
+			   -- equiv. AND NOT((NOT(is_canonic) AND fk_canonic  IS NULL))
+			AND CASE WHEN p_use_length THEN char_length(term)>3 ELSE  true END
+		ORDER BY fk_ns, char_length(term) desc, term
+	) SELECT lang,
+			CASE WHEN p_outpairs
+				THEN jsonb_object( array_agg(term), array_agg(fk_canonic)::text[] )  -- not jsonb for order
+				ELSE jsonb_agg(term)
+			END  as list
+	  FROM items
+	  GROUP BY lang
+ ) as t;
+$f$ LANGUAGE SQL IMMUTABLE;
+
+--- --- ---
+--- ASSERT HELPER
+
+CREATE FUNCTION tlib._assert(p_maxerrors int DEFAULT 3, p_caller_id text DEFAULT NULL) RETURNS jsonb AS $f$
+	--
+	-- Parse and run the asserts of tstore._assert table. See use at packLoad.
+	-- Not use assert clause, it is not a local bug-check, http://www.postgresql.org/docs/9.5/static/plpgsql-errors-and-messages.html#PLPGSQL-STATEMENTS-ASSERT
+	-- It is a "test-kit" as http://tsqlt.org or (as small as) http://www.bigsmoke.us/postgresql-unit-testing
+	--  or debug http://stackoverflow.com/a/754570/287948
+	--
+	DECLARE
+		r RECORD;
+		out text;
+		ret JSONB[] := array[]::JSONB[];
+		nerrors int := 0;
+		test boolean;
+	BEGIN
+	FOR r IN SELECT * FROM tstore._assert ORDER BY alabel,id  LOOP
+		EXECUTE CASE WHEN lower(substring(trim(r.sql_select),1,6))='select' THEN '' ELSE 'SELECT ' END || r.sql_select
+			INTO out;
+		--IF r.result!=out THEN
+		test := (r.result=out); -- (trim(r.result::text)=trim(out));
+		ret := array_append( ret, jsonb_build_object(
+			'sucess',test, 'id',r.id, 'alabel',r.alabel, 'sql_select',r.sql_select, 'result_expected', r.result, 'result_run',out
+		));
+		nerrors := nerrors + (not(test))::int;
+		EXIT WHEN nerrors > p_maxerrors;
+	END LOOP;
+	RETURN tlib.jrpc_ret(
+		jsonb_build_object(
+			'items',  array_to_json(ret), --(SELECT to_jsonb(x) FROM unnest(ret) tt(x))
+			'errors', nerrors
+		),
+		p_caller_id
+	);
+END;
+$f$ LANGUAGE PLpgSQL;
+
+CREATE FUNCTION tlib._assert_outextab(
+	p_showsucess boolean DEFAULT false,
+	p_maxerrors int DEFAULT 3,
+	p_fulloutput boolean DEFAULT false,
+	p_caller_id text DEFAULT NULL
+) RETURNS text AS $f$
+	WITH xerrors AS (
+		SELECT (r->>'sucess')::boolean as sucess, (r->>'id')::int as id, r->>'alabel' as alabel,
+			r->>'result_run' as result_run, r->>'sql_select' as qsql, r->>'result_expected' as result_expected
+		FROM jsonb_array_elements((tlib._assert($2,$4)->'result')->'items') t(r)
+	) SELECT array_to_string( array_agg(CASE
+			WHEN sucess THEN alabel || ': sucess on id_assert ' || id
+			ELSE alabel || ': ERROR on id_assert ' || id || CASE
+			   WHEN p_fulloutput THEN E'\n\tSQL: ' || qsql || E'\n\tEXPECTED RESULT: ' || result_expected|| E'\n\tRESULT: ' || result_run
+			   ELSE '' END
+			END
+	    ), E'\n', '-' ) AS txt
+	  FROM xerrors
+		WHERE p_showsucess OR NOT(sucess);
+$f$ LANGUAGE SQL;

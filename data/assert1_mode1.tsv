@@ -1,0 +1,10 @@
+alabel	sql_select	return
+ex1, normalize	tlib.normalizeterm('  test test0 - TEST, test2/test2,  "test3"  test4.test   ')	test test0 , test , test2 , test2 , test3 , test4.test
+ex1, metaphone	tlib.multimetaphone('paralelepipedo quadrado da Maria')	PRLLPP KTRT T MR
+ex2, search	tlib.search('{"id":123,"op":"&","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb)	{"id": "123", "result": {"op": "&", "lim": "2", "count": 2, "items": {"embrapa": "100", "embrapa-rj": "54"}, "sc_max": 100, "sc_func": "dft", "metaphone": "false"}, "jsonrpc": "2.0"}
+ex2, search	tlib.search2c('{"id":123,"op":"%","qs":"usspi","ns":"wayta-code","lim":5,"metaphone":true,"otype":"o"}'::jsonb)	{"id": "123", "result": {"op": "%", "lim": "5", "count": 1, "items": {"universidade de são paulo": "43"}, "sc_max": 43, "sc_func": "dft", "metaphone": "true", "synonyms_count": 42}, "jsonrpc": "2.0"}
+ex3, find	tlib.find('{"qs":"embrapa","ns":"wayta-code","otype":"o"}'::jsonb)	{"id": null, "result": {"op": "=", "lim": "5", "count": 1, "items": {"embrapa": "100"}, "sc_max": 100, "sc_func": "dft", "metaphone": "false"}, "jsonrpc": "2.0"}
+ex3, find	tlib.find2c('{"qs":"USP","ns":"wayta-code","otype":"o"}'::jsonb)	{"id": null, "result": {"op": "=", "lim": "5", "count": 1, "items": {"universidade de são paulo": "100"}, "sc_max": 100, "sc_func": "dft", "metaphone": "false", "synonyms_count": 1}, "jsonrpc": "2.0"}
+ex3, find	tlib.find2c('{"qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"otype":"o"}'::jsonb)	{"id": null, "result": {"op": "=", "lim": null, "count": 1, "items": {"embrapa": "45"}, "sc_max": 45, "sc_func": "dft", "metaphone": "true", "synonyms_count": 1}, "jsonrpc": "2.0"}
+ex2, N2C	SELECT term || ' - ' || score FROM tlib.N2C_tab('colombia',tlib.basemask('country-en'),true)	co - 100
+ex2, N2C	SELECT term || ' - ' || score FROM tlib.N2C_tab('usp',tlib.nsget_nsid('wayta-code'),true);	universidade de são paulo - 100

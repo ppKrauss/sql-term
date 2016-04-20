@@ -5,7 +5,7 @@ To present *reference database structure* for "terminology by demand", and offer
 
 ## Fast Guide
 
-Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [struct.sql](src/sql_mode1/step2_struct.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/basic2.sql) (b2).
+Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [struct.sql](src/sql_mode1/step2_struct.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/set-1-SQL/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/set-1-SQL/basic2.sql) (b2).
 
 * `term1`:
    * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
@@ -18,8 +18,8 @@ Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2
    * Utilities:
       * `term1.basemask()` see b1.
       * `nsget_nsopt2int()` see b2.
-* `term_lib`, main functions: 
-   * `term_lib.normalizeterm()`: see b1. 
+* `term_lib`, main functions:
+   * `term_lib.normalizeterm()`: see b1.
    * `term_lib.score()`: see b1.
    * `term_lib.score_pairs()`: see b1.
 
@@ -62,15 +62,17 @@ The functions can be used as webservice or in SQL  queries. About webservice app
 Typical usage on terminal:
 ```
 cd sql-term
-psql -h localhost -U postgres postgres < examples/basic1.sql | more
+psql -h localhost -U postgres postgres < examples/set-1-SQL/basic1.sql | more
 # or
-psql -h localhost -U postgres postgres < examples/basic1.sql >  test.txt
-diff test.txt examples/basic1.dump.txt
+psql -h localhost -U postgres postgres < examples/set-1-SQL/basic1.sql >  test.txt
+diff test.txt examples/set-1-SQL/basic1.dump.txt
 ```
 the database user (`-U postgres`)  must be conform edited `$PG_USER`. If database name also changed, the `psql` commands also must be changed.
 
 ## Populating with other data
-... CSV import , SQL import ... Namespaces... 
+... CSV import , SQL import ... Namespaces...
+
+.... Asserts: managing at [this spreadsheet](https://docs.google.com/spreadsheets/d/1xmophtZYlTPuE6QFa3kGKj1C99ZjI1bIka3CXVebS0Q/edit#gid=0).
 
 ## NOTES
 
@@ -84,9 +86,13 @@ the database user (`-U postgres`)  must be conform edited `$PG_USER`. If databas
 
 ### Context and concepts
 
+* Inspiration projects, that use "SQL as the search engine":
+
+   * [pg_search: How I Learned to Stop Worrying and Love PostgreSQL full-text search](https://blog.pivotal.io/labs/labs/pg-search-how-i-learned-to-stop-worrying-and-love-postgresql-full-text-search)... In [real life, real cases](http://casecommons.org/casebook/). Best project about: https://github.com/Casecommons/pg_search
+
 * ... [Controlled terminologies](https://www.wikidata.org/wiki/Q1469824) ... [Named-entity recognition](https://en.wikipedia.org/wiki/Named-entity_recognition), ...  URNs, URN-resolution (ex. [ISSN-L resolution](https://github.com/okfn-brasil/ISSN-L-Resolver)) and operators N2C, N2Ns, etc.
 
-* ... lexemes ...  this project is illustring use of [português brasileiro](https://www.wikidata.org/wiki/Q750553)... 
+* ... lexemes ...  this project is illustring use of [português brasileiro](https://www.wikidata.org/wiki/Q750553)...
 
 * XML and precise markup of terms: terms into [JATS](https://en.wikipedia.org/wiki/Journal_Article_Tag_Suite), [AKN](http://www.akomantoso.org/) or [LexML](http://projeto.lexml.gov.br/documentacao/Parte-3-XML-Schema.pdf) documents... Each document must use a public standard ID, as  [DOI](https://www.wikidata.org/wiki/Q25670) or [URN Lex](https://en.wikipedia.org/wiki/Lex_(URN)).
 
@@ -95,5 +101,3 @@ the database user (`-U postgres`)  must be conform edited `$PG_USER`. If databas
 ### Future implementations
 
 The automatic choice of language needs "dynamic *tsquery*" and in-loop change of *regconfig*, so, some caching or some fast ID2regconfig convertion.
-
-

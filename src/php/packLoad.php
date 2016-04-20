@@ -20,7 +20,6 @@ $dbTerminal = "psql -h localhost -U $PG_USER  -W $databaseName";  // (for assert
 // INI
 $db = new pdo($dsn,$PG_USER,$PG_PW);
 
-
 /////////////////
 // MAIN FUNCTIONS
 
@@ -30,15 +29,16 @@ $db = new pdo($dsn,$PG_USER,$PG_PW);
  * @param $MSG a general message about what is iniciatizating
  * @param $do  false abort this function
  */
-function sql_prepare($INI,$MSG='',$basePath='',$do=true) {
+function sql_prepare($INI,$MSG='',$basePath='',$do=true, $assertStop=3) {
 	global $db;
 	global $dbTerminal;
+	if (!is_array($INI)) $INI = [$INI];
 	$time_start = microtime(true);
 	$affected = 0;
 	if ($do) {
 		print "\n --- BEGIN SQL SCRIPTS ".($MSG? ": $MSG": '')." \n";
 		foreach($INI as $sql)
-			if (preg_match("/^::assert:([^\n]+\.sql)\$/",$sql,$m)) {   // assert file
+			if (preg_match("/^::assert:([^\n]+\.sql)\$/",$sql,$m)) {   // assert files
 				print "\n\t... running assert $m[1]...";
 				$file = "$basePath/$m[1]";
 				$out = shell_exec("$dbTerminal < $file");
@@ -47,6 +47,41 @@ function sql_prepare($INI,$MSG='',$basePath='',$do=true) {
 					die("\n--- ASSERT ERROR ON $file ----\n\n(((BEGIN DEBUG:\n$out\nEND DEBUG)))\n\n");
 				else
 					print " ok!";
+
+			} elseif (preg_match("/^::assert(_bysql)?:([^\n]+\.tsv)\$/",$sql,$m)) {   // assert TSV file
+				$bysql = $m[1];
+				print "\n\t... loading assert $m[2]...";
+				$file = "$basePath/$m[2]";
+				if ($bysql) {
+					$sql = "
+								COPY tstore._assert (alabel,sql_select,result)
+								FROM '{$file}'
+								WITH (FORMAT csv, DELIMITER E'\\t', QUOTE E'\\b', HEADER)
+					";
+					sql_exec($db, $sql, "\n\t... building assert table");
+					print "\n\t... running assert";
+					if ($out = $db->query("SELECT tlib._assert_outextab(false,1)")->fetchColumn())
+						die("\n ASSERT ERRORS: $out\n");
+					else
+						print "\n\t... conclude assert: ALL OK.";
+
+				} else {
+					$h = fopen($file,'r'); // 0=alabel	1=sql_select	2=return
+					$label0 = '';
+					$nErrors=0;
+					while( $h && !feof($h) )
+					 if ((list($label,$sql,$out) = fgetcsv($h,0,"\t")) && isset($sql) && $sql!='sql_select') {
+						if ($label!=$label0) {print "\n\t Assert group $label: "; $label0=$label;}
+						$sql0 = trim($sql);
+						$sql = (strtolower(substr($sql0,0,6))=='select')? $sql: "SELECT $sql"; // little parse to be little friendly
+						if ($db->query($sql)->fetchColumn() != $out) {
+							print "\n ASSERT ERROR ON SQL: ((\n$sql\n)) expected '''\n$out\n'''\n";
+							if (++$nErrors>$assertStop) die("\n END: TOO MANY ASSERT-ERRORS\n");
+						} else print "ok ";
+					}  // while if
+				} // else
+				print "\n\tEND assert";
+
 			} elseif (preg_match("/^::([^\n]+\.sql)\$/",$sql,$m))  // normal file
 					$affected += sql_exec($db, file_get_contents("$basePath/$m[1]"), "\n\t... running script from file");
 			else
@@ -60,15 +95,22 @@ function sql_prepare($INI,$MSG='',$basePath='',$do=true) {
 }
 
 /**
- * SQL database preparation, running SQL scripts for initialization.
- * @param $INI array of SQL blocks
- * @param $MSG a general message about what is iniciatizating
- * @param $do  false abort this function
+ * Load resource data (from datapackage or $etc).
+ * @param $basePath array of SQL blocks
+ * @param $items  array of pairs command-param
+ * @param $MSG a general message or items-description.
+ * @param $etc  string ($jfieldName) or array with replacement for datapackage.
  */
-function resourceLoad_run($basePath,$items,$MSG='',$jfieldName='jinfo'){
+function resourceLoad_run($basePath,$items,$MSG='',$etc='jinfo'){
 	global $db;
+	if (is_array($etc)) {   // a datapackage replacement
+		$packs = $etc['packs'];
+		$jfieldName = $etc['jfieldName'];
+	} else{
+		$jfieldName=$etc;
+		$packs = unpack_datapackage($basePath);  // mais de uma
+	}
 	$time_start = microtime(true);
-	$packs = unpack_datapackage($basePath);  // mais de uma
 	print "\n\tBEGIN processing $MSG ...";
 	$affected=0;
 	foreach ($items as $resName=>$preps) foreach($preps as $args) if (isset($packs[$resName])) {
@@ -81,7 +123,6 @@ function resourceLoad_run($basePath,$items,$MSG='',$jfieldName='jinfo'){
 					$sql = "COPY $args[0] FROM '{$p['file']}' DELIMITER '{$p['sep']}' CSV HEADER;";
 					$affected += sql_exec($db, $sql, "\n\t... $cmd($args[0]) ");
 					break;
-
 				default:  // automatic, creating table as tmp_name
 					$cmd='prepare_auto';
 				case 'prepare_jsonb':

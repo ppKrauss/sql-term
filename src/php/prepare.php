@@ -22,13 +22,13 @@ $sqlIni   = [ // prepare namespaces
 
 	,"SELECT tStore.ns_upsert('test','pt','Test. Portuguese.')"
 
-	,"SELECT tStore.ns_upsert('wayta-pt','pt','Wayta SciELO reference-dataset, Portuguese.',true, '{\"group_unique\":true}'::jsonb)"
+	,"SELECT tStore.ns_upsert('wayta-pt','pt','Wayta SciELO reference-dataset, Portuguese.',true, '{\"group_unique\":false}'::jsonb)"
 	,"SELECT tStore.ns_upsert('wayta-code','  ','Wayta SciELO reference-dataset, no-lang')"
 	,"SELECT tStore.ns_upsert('wayta-en','en','Wayta SciELO reference-dataset, English.')"
 	,"SELECT tStore.ns_upsert('wayta-es','es','Wayta SciELO reference-dataset, Spanish.')"
 	,"UPDATE tStore.ns SET fk_partOf=tlib.nsget_nsid('wayta-pt') WHERE label!='wayta-pt' AND left(label,5)='wayta'"
 
-	,"SELECT tStore.ns_upsert('country-code', '  ', 'Country names reference-dataset, no-lang.', true, '{\"group_unique\":true}'::jsonb)"
+	,"SELECT tStore.ns_upsert('country-code', '  ', 'Country names reference-dataset, no-lang.', true, '{\"group_unique\":false}'::jsonb)"
 	,"SELECT tStore.ns_upsert('country-pt','pt','Country names reference-dataset, Portuguese.')"
 	,"SELECT tStore.ns_upsert('country-fr','fr','Country names reference-dataset, French.')"
 	,"SELECT tStore.ns_upsert('country-es','es','Country names reference-dataset, Spanish.')"
@@ -37,7 +37,18 @@ $sqlIni   = [ // prepare namespaces
 	,"SELECT tStore.ns_upsert('country-it','it','Country names reference-dataset, Italian.')"
 	,"SELECT tStore.ns_upsert('country-nl','nl','Country names reference-dataset, Dutch.')"
 	,"UPDATE tStore.ns SET fk_partOf=tlib.nsget_nsid('country-code') WHERE label!='country-code' AND left(label,7)='country'"
+
+	// may be use datapack info
+	,"INSERT INTO tstore.source (name,jinfo) VALUES
+		('normalized_aff',      tstore.source_add1('Scielo','Wayta institution','https://github.com/scieloorg/wayta/blob/master/processing/normalized_aff.csv') )
+		,('normalized_country', tstore.source_add1('Scielo','Wayta country','https://github.com/scieloorg/wayta/blob/master/processing/normalized_country.csv') )
+		,('country-names-multilang', tstore.source_add1('Unicode','UNICODE CLDR, core, territory','http://www.unicode.org/Public/cldr') )
+		,('country-codes',      tstore.source_add1('OKFN','Data Packaged Core Datasets, ISO and other Country Codes','https://raw.github.com/datasets/country-codes/master/data/country-codes.csv') )
+		,('iso3166-1-alpha-2',      tstore.source_add1('ISO','ISO-3166-1, Country Codes, Alpha-2','') )
+		,('iso3166-1-alpha-3',      tstore.source_add1('ISO','ISO-3166-1, Country Codes, Alpha-3','') )
+	"
 ];
+
 
 // // // // //
 // MAKING DATA:
@@ -75,24 +86,28 @@ sql_prepare(
 
 		,"::src/sql_mode$sqlMode/nsCountry_build.sql" 	// UPDATES and data adaptations
 		,"DROP TABLE tlib.tmp_waytacountry; DROP TABLE tlib.tmp_codes; DROP TABLE tlib.tmp_codes2;"  // used, can drop it.
-,"DROP TABLE IF EXISTS tmp_xx; CREATE TABLE tmp_xx AS SELECT  c.term as canonic,  t.term, tlib.nsid2label(t.fk_ns) as nslabel, t.is_cult
-from tstore.term t INNER JOIN tstore.term_canonic c ON c.id=t.fk_canonic
-where t.is_suspect AND t.fk_ns>32 and t.kx_metaphone IN (
-	SELECT kx_metaphone
-	from tstore.term
-	where fk_ns>32
-	GROUP BY kx_metaphone
-	HAVING sum(COALESCE(is_suspect,true)::int)>0  AND count(*)>1
-	order by 1
-) ORDER BY c.term, t.term;
-"
-,"COPY tmp_xx TO '$basePath/data/tmp_country-humanCheck.csv' DELIMITER ',' CSV HEADER;"
+
+		/*
+		,"DROP TABLE IF EXISTS tmp_xx; CREATE TABLE tmp_xx AS
+			SELECT  c.term as canonic,  t.term, tlib.nsid2label(t.fk_ns) as nslabel, t.is_cult
+			FROM tstore.term t INNER JOIN tstore.term_canonic c ON c.id=t.fk_canonic
+			WHERE t.is_suspect AND t.fk_ns>32 and t.kx_metaphone IN (
+				SELECT kx_metaphone
+				from tstore.term
+				where fk_ns>32
+				GROUP BY kx_metaphone
+				HAVING sum(COALESCE(is_suspect,true)::int)>0  AND count(*)>1
+				order by 1
+			) ORDER BY c.term, t.term;
+		"
+		,"COPY tmp_xx TO '$basePath/data/tmp_country-humanCheck.csv' DELIMITER ',' CSV HEADER;"
+		*/
 
 		,"::src/sql_mode$sqlMode/nsWayta_build.sql"  	// UPDATES and data adaptations
 		,"DROP TABLE tlib.tmp_waytaff;"  // used, can drop it.
 
-
-		// ,"::assert:src/sql_mode$sqlMode/assert1.sql"  // test against assert (need password by terminal)
+		//,"::assert:data/assert1_mode$sqlMode.tsv" // test against assert
+		,"::assert_bysql:data/assert1_mode$sqlMode.tsv" // test against assert
 	]
 	,"SQL FINALIZATION"
 	,$basePath

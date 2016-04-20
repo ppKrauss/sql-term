@@ -5,7 +5,7 @@
 \qecho =================================================================
 \qecho === Running: basic2 examples ====================================
 \qecho =================================================================
-\qecho 
+\qecho
 
 \qecho '====== Terms, some samples and info retrieval:   ========================'
 SELECT * FROM tstore.term WHERE term>'m' LIMIT 3;
@@ -15,13 +15,13 @@ SELECT id,term as canonic_term FROM tstore.term_canonic WHERE term>'m' LIMIT 3;
 SELECT id,term as synonym_term FROM tstore.term_synonym WHERE term>'m' LIMIT 3;
 SELECT id,term as synonym_term, term_canonic FROM tstore.term_synonym_full WHERE term>'m' LIMIT 3;
 
-\qecho '====== 10 top lexemes (more frequent words by its lexemes) of each namespace:   ==========='
-WITH ns AS (SELECT nsid FROM tstore.ns WHERE (nsid&tlib.basemask('wayta-pt'))::boolean)
+\qecho '====== 10 top lexemes (more frequent words by its lexemes) of each namespace (of wayta-*):   ==========='
+WITH xns AS (SELECT nsid FROM tstore.ns WHERE (nsid&tlib.basemask('wayta-pt'))::boolean)
   SELECT word as lexeme, count(nsid) as tot_ns, sum(ndoc) as tot_ndoc, sum(nentry) as tot_entry
   FROM (
-	  SELECT ns.nsid, t.*
-	  FROM tstore.ns, 
-	       ts_stat('SELECT kx_tsvector FROM tstore.term WHERE (fk_ns&'||ns.nsid||')::boolean' ) t
+	  SELECT xns.nsid, t.*
+	  FROM xns,
+	       ts_stat('SELECT kx_tsvector FROM tstore.term WHERE fk_ns='||xns.nsid ) t  -- ou (fk_ns&'||xns.nsid||')::boolean
   ) t2
   GROUP BY word
   ORDER BY 3 DESC,1
@@ -52,9 +52,9 @@ select count(*) from tlib.search_tab('{"op":"&","qs":"embrapa","ns_basemask":"wa
 select * from tlib.search_tab('{"op":"=","qs":"embripo","ns":"wayta-code","metaphone":true}'::jsonb) as "with Metaphone"; --ok
 select * from tlib.search_tab('{"op":"=","qs":"embripo","ns":"wayta-code","metaphone":false}'::jsonb) as "without Metaphone"; --ok
 
-select * from tlib.search_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb); 
+select * from tlib.search_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb);
 
-select * from tlib.search_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb); 
+select * from tlib.search_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb);
 select count(*) from tlib.search_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
 select count(*) from tlib.search_tab('{"op":"%","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
 
@@ -68,9 +68,9 @@ select count(*) from tlib.search_tab('{"op":"&","qs":"embiripo","ns_basemask":"w
 select * from tlib.search_tab('{"op":"=","qs":"usp","ns":"wayta-code","metaphone":true}'::jsonb); -- "with Metaphone"
 select * from tlib.search2c_tab('{"op":"=","qs":"usp","ns":"wayta-code","metaphone":true}'::jsonb); -- "Metaphones to canonic";
 
-select * from tlib.search2c_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb); 
+select * from tlib.search2c_tab('{"op":"=","qs":"embiripo","ns_basemask":"wayta-pt","metaphone":true}'::jsonb);
 
-select * from tlib.search2c_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb); 
+select * from tlib.search2c_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":5,"metaphone":true}'::jsonb);
 select count(*) from tlib.search2c_tab('{"op":"%","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
 select count(*) from tlib.search2c_tab('{"op":"%","qs":"embiripo","ns_basemask":"wayta-pt","lim":null,"metaphone":true}'::jsonb);
 
@@ -79,8 +79,8 @@ select count(*) from tlib.search2c_tab('{"op":"p","qs":"embiripo","ns":"wayta-co
 select count(*) from tlib.search2c_tab('{"op":"&","qs":"embiripo","ns":"wayta-code","lim":null,"metaphone":true}'::jsonb);
 
 
-\qecho '====== Using search() and to search2c() illustrate complete JSON i/o   ===='  
-select tlib.search('{"id":123,"op":"=","qs":"embrapa","ns":"wayta-code","lim":1,"otype":"l"}'::jsonb); 
+\qecho '====== Using search() and to search2c() illustrate complete JSON i/o   ===='
+select tlib.search('{"id":123,"op":"=","qs":"embrapa","ns":"wayta-code","lim":1,"otype":"l"}'::jsonb);
 select tlib.search('{"id":123,"op":"p","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
 select tlib.search('{"id":123,"op":"&","qs":"embrapa","ns":"wayta-code","lim":2,"otype":"o"}'::jsonb);
 
@@ -93,4 +93,9 @@ select tlib.search2c('{"id":123,"op":"%","qs":"usspi","ns":"wayta-code","lim":5,
 -- DROP TABLE IF EXISTS example;
 -- RESET client_min_messages;
 
-
+\qecho '====== The source/namespace distribution   ===='
+select tlib.nsid2label(fk_ns) as namespace, array_distinct(array_agg(s.name)) as sources, count(*) as n
+from tstore.term  t INNER JOIN tstore.source s ON fk_source @> ARRAY[s.id]
+group by 1,fk_source
+order by 1,3;
+-- check stable terms by ex. SELECT term FROM tstore.term WHERE fk_source='{2,3,4}'::int[];
