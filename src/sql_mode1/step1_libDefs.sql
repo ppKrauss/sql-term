@@ -154,12 +154,14 @@ CREATE FUNCTION tlib.normalizeterm(
 	-- Converts string into standard sequence of lower-case words.
 	--
 	text,       		-- 1. input string (many words separed by spaces or punctuation)
-	text DEFAULT ' ', 	-- 2. separator
-	int DEFAULT 255		-- 3. max lenght of the result (system limit)
+	text DEFAULT ' ', 	-- 2. output separator
+	int DEFAULT 255,	-- 3. max lenght of the result (system limit)
+	p_sep2 text DEFAULT ' , ', 	-- 4. output separator between terms
 ) RETURNS text AS $f$
   SELECT  substring(
 	LOWER(TRIM( regexp_replace(  -- for review: regex(regex()) for ` , , ` remove
-		trim(regexp_replace($1,E'[\\n\\r \\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*[\\+/,;:\\(\\)\\{\\}\\[\\]="]+[\\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*|[\\s ]+[–\\-][\\s ]+',' , ', 'g'),' ,'),   -- s*ps*|s-s
+		trim(regexp_replace($1,E'[\\n\\r \\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*[\\+/,;:\\(\\)\\{\\}\\[\\]="]+[\\+/,;:\\(\\)\\{\\}\\[\\]="\\s ]*|[\\s ]+[–\\-][\\s ]+',
+				   p_sep2, 'g'),' ,'),   -- s*ps*|s-s
 		E'[\\s ;\\|"]+[\\.\'][\\s ;\\|"]+|[\\s ;\\|"]+',    -- s.s|s
 		$2,
 		'g'
