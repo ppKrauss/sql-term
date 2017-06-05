@@ -156,7 +156,7 @@ CREATE FUNCTION tlib.normalizeterm(
 	text,       		-- 1. input string (many words separed by spaces or punctuation)
 	text DEFAULT ' ', 	-- 2. output separator
 	int DEFAULT 255,	-- 3. max lenght of the result (system limit)
-	p_sep2 text DEFAULT ' , ', 	-- 4. output separator between terms
+	p_sep2 text DEFAULT ' , ' -- 4. output separator between terms
 ) RETURNS text AS $f$
   SELECT  substring(
 	LOWER(TRIM( regexp_replace(  -- for review: regex(regex()) for ` , , ` remove
