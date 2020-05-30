@@ -7,7 +7,7 @@ To present *reference database structure* for "terminology by demand", and offer
 
 Use of SQL functions, or microservices with same *method name* (SEARCH, FIND, N2C, N2Ns, etc.). For function details and description, see [struct.sql](src/sql_mode1/step2_struct.sql), or examples [basic1](https://github.com/ppKrauss/sql-term/blob/master/examples/set-1-SQL/basic1.sql) (b1) and [basic2](https://github.com/ppKrauss/sql-term/blob/master/examples/set-1-SQL/basic2.sql) (b2).
 
-* `term1`:
+* `term1` API:
    * Main functions (run with JSON parameters, minimal are `qs` and `ns`):
       * `n2c()`: normal to canonic, retrieves the canonic term from a valid term of a namespace. See b1.
       * `n2ns()`: normal to normals, retrieves the all synonyms of a valid term (of a namespace). See b1.
@@ -34,7 +34,7 @@ The *Term* table is so simple: each term, canonic or not, is a row in the main t
 
 UML class diagram of *SCHEMA TermStore*, implemented as tables and views, at [Mode1 structure](src/sql_mode1/step2_struct.sql):
 
-![uml class diagram](http://yuml.me/fe36a8da)
+![uml class diagram](https://github.com/ppKrauss/sql-term/raw/master/assets/dia1_umlClass.png)
 
 ### Conventions ###
 The SQL is supplied in 3 modes,
